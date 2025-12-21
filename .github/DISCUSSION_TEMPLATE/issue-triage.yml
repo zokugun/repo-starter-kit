@@ -45,7 +45,7 @@ body:
       required: true
   - type: markdown
     attributes:
-      value: |
+      value: |-
         # User Acknowledgements
         > [!TIP]
         > Use these links to review the existing [Discussions](https://github.com/zokugun/repo-starter-kit/discussions?discussions_q=) and [Issues](https://github.com/zokugun/repo-starter-kit/issues?q=sort%3Areactions-desc).

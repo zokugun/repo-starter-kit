@@ -1,9 +1,7 @@
-name: close-invalid-issue
-
+name: Close invalid issue
 on:
   issues:
     types: [opened]
-
 jobs:
   close-invalid-issue:
     name: Close invalid issue
