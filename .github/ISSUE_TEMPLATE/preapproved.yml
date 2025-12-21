@@ -1,5 +1,5 @@
 name: Pre-Discussed and Approved Topics
-about: |-
+description: |-
   Only for topics already discussed and approved in the GitHub Discussions section.
 body:
   - type: markdown
