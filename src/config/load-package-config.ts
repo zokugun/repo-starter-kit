@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import { err, ok, stringifyError, type Result } from '@zokugun/xtry';
+import { err, ok, stringifyError, xtry, type Result } from '@zokugun/xtry';
 import pacote from 'pacote';
 import { temporaryDirectory } from 'tempy';
 import YAML from 'yaml';
@@ -13,7 +13,23 @@ type PackageFileConfig = {
 	issue?: string;
 };
 
-const CONFIG_FILENAMES = ['repo-starter-kit.yml', 'repo-starter-kit.yaml', 'repo-starter-kit.json'] as const;
+const CONFIG_FILES = [
+	{
+		name: 'repo-starter-kit.yml',
+		type: 'yaml',
+	},
+	{
+		name: 'repo-starter-kit.yaml',
+		type: 'yaml',
+	},
+	{
+		name: 'repo-starter-kit.json',
+		type: 'json',
+	},
+	{
+		name: 'repo-starter-kit',
+	},
+];
 const DEFAULT_REGISTRY = 'https://registry.npmjs.org';
 
 export async function loadPackageConfig(packageName: string): Promise<Result<{ labelsPath?: string; issuePath?: string }, string>> {
@@ -93,34 +109,58 @@ function resolveRegistry(): string {
 }
 
 async function readConfigFile(packageRoot: string, packageName: string): Promise<Result<PackageFileConfig, string>> {
-	for(const filename of CONFIG_FILENAMES) {
-		const candidate = path.join(packageRoot, filename);
-
-		let content: string;
-
+	for(const { name, type } of CONFIG_FILES) {
 		try {
-			content = await readFile(candidate, 'utf8');
+			const content = await readFile(path.join(packageRoot, name), 'utf8');
+
+			let data: unknown;
+
+			if(type === 'json') {
+				const result = xtry(() => JSON.parse(content) as unknown, stringifyError);
+				if(result.fails) {
+					return result;
+				}
+
+				data = result.value;
+			}
+			else if(type === 'yaml') {
+				const result = xtry(() => YAML.parse(content) as unknown, stringifyError);
+				if(result.fails) {
+					return result;
+				}
+
+				data = result.value;
+			}
+			else {
+				let result = xtry(() => JSON.parse(content) as unknown, stringifyError);
+
+				if(result.fails) {
+					result = xtry(() => YAML.parse(content) as unknown, stringifyError);
+					if(result.fails) {
+						return result;
+					}
+				}
+
+				data = result.value;
+			}
+
+			if(!isRecord(data)) {
+				return err(`Config file ${name} must export an object.`);
+			}
+
+			return ok({
+				labels: typeof data.labels === 'string' ? data.labels : undefined,
+				issue: typeof data.issue === 'string' ? data.issue : undefined,
+			});
 		}
 		catch (error) {
 			if(isNodeError(error) && error.code === 'ENOENT') {
 				continue;
 			}
 
-			return err(`Failed to read ${filename} from package: ${stringifyError(error)}`);
+			return err(`Failed to read ${name} from package: ${stringifyError(error)}`);
 		}
-
-		const extension = path.extname(filename).toLowerCase();
-		const data: unknown = extension === '.json' ? JSON.parse(content) : YAML.parse(content);
-
-		if(!isRecord(data)) {
-			return err(`Config file ${filename} must export an object.`);
-		}
-
-		return ok({
-			labels: typeof data.labels === 'string' ? data.labels : undefined,
-			issue: typeof data.issue === 'string' ? data.issue : undefined,
-		});
 	}
 
-	return err(`Package ${packageName} must include one of ${CONFIG_FILENAMES.join(', ')} at its root.`);
+	return err(`Package ${packageName} must include one of ${CONFIG_FILES.map(({ name }) => name).join(', ')} at its root.`);
 }
