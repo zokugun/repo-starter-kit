@@ -1,0 +1,3 @@
+labels: ./labels.yml
+issue: ./issue.md
+rulesets: ./rulesets.yml

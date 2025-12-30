@@ -32,7 +32,7 @@ export function error(message: string): void {
 }
 
 export function log(message: string): void {
-	logUpdate.persist(`${c.cyan(c.symbols.cross)} ${message}`);
+	logUpdate.persist(`${c.cyan(c.symbols.bullet)} ${message}`);
 }
 
 export function warn(message: string): void {

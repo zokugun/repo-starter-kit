@@ -1,17 +1,19 @@
-import path from 'node:path';
 import { createOAuthDeviceAuth } from '@octokit/auth-oauth-device';
 import { Octokit } from '@octokit/rest';
 import clipboardy from 'clipboardy';
 import enquirer from 'enquirer';
 import open from 'open';
-import { loadPackageConfig } from './config/load-package-config.js';
+import { loadConfig } from './config/load-package-config.js';
 import { createIssue } from './issues/create-issue.js';
 import { loadIssue } from './issues/load-issue.js';
 import { loadLabels } from './labels/load-labels.js';
 import { syncLabels } from './labels/sync-labels.js';
 import { existsRepo } from './repos/exists-repo.js';
 import { parseRepo } from './repos/parse-repo.js';
-import { type CliOptions, type Issue, type Label } from './types.js';
+import { loadRulesets } from './rulesets/load-rulesets.js';
+import { syncRulesets } from './rulesets/sync-rulesets.js';
+import { type CliOptions, type Issue, type Label, type Ruleset } from './types.js';
+import { loadResource } from './utils/load-resource.js';
 import * as logger from './utils/logger.js';
 
 type VerificationPrompt = {
@@ -29,26 +31,15 @@ export async function run(options: CliOptions) {
 		return logger.error(repo.error);
 	}
 
-	let labelsPath = options.labels ? path.resolve(options.labels) : undefined;
-	let issuePath = options.issue ? path.resolve(options.issue) : undefined;
-
 	logger.progress('Loading');
-
-	if(options.package) {
-		const packagePaths = await loadPackageConfig(options.package);
-		if(packagePaths.fails) {
-			return logger.error(packagePaths.error);
-		}
-
-		labelsPath ??= packagePaths.value.labelsPath;
-		issuePath ??= packagePaths.value.issuePath;
-	}
 
 	let labels: Label[] | undefined;
 	let issue: Issue | undefined;
+	let rulesets: Ruleset[] | undefined;
 
-	if(labelsPath) {
-		const result = await loadLabels(labelsPath);
+	if(options.labels) {
+		const result = await loadResource(options.labels, loadLabels);
+
 		if(result.fails) {
 			return logger.error(result.error);
 		}
@@ -56,8 +47,9 @@ export async function run(options: CliOptions) {
 		labels = result.value;
 	}
 
-	if(issuePath) {
-		const result = await loadIssue(issuePath);
+	if(options.issue) {
+		const result = await loadResource(options.issue, loadIssue);
+
 		if(result.fails) {
 			return logger.error(result.error);
 		}
@@ -65,7 +57,59 @@ export async function run(options: CliOptions) {
 		issue = result.value;
 	}
 
-	if(labels ?? issue) {
+	if(options.rulesets) {
+		const result = await loadResource(options.rulesets, loadRulesets);
+		if(result.fails) {
+			return logger.error(result.error);
+		}
+
+		rulesets = result.value;
+	}
+
+	if(!labels && !issue && !rulesets && options.package) {
+		const config = await loadConfig(options.package);
+		if(config.fails) {
+			return logger.error(config.error);
+		}
+
+		if(!labels && config.value.labels) {
+			const result = await loadResource(config.value.labels, loadLabels, { cwd: config.value.root });
+
+			if(result.fails) {
+				return logger.error(result.error);
+			}
+
+			labels = result.value;
+		}
+
+		if(!issue && config.value.issue) {
+			const result = await loadResource(config.value.issue, loadIssue, { cwd: config.value.root });
+
+			if(result.fails) {
+				return logger.error(result.error);
+			}
+
+			issue = result.value;
+		}
+
+		if(!rulesets && config.value.rulesets) {
+			rulesets = [];
+
+			for(const ruleset of config.value.rulesets) {
+				const result = await loadResource(ruleset, loadRulesets, { cwd: config.value.root });
+
+				if(result.fails) {
+					return logger.error(result.error);
+				}
+
+				if(result.success) {
+					rulesets.push(...result.value);
+				}
+			}
+		}
+	}
+
+	if(labels ?? issue ?? rulesets) {
 		const octokit = new Octokit({
 			authStrategy: createOAuthDeviceAuth,
 			auth: {
@@ -114,6 +158,15 @@ export async function run(options: CliOptions) {
 			logger.progress('Creating issue');
 
 			const result = await createIssue(octokit, repo.value, issue);
+			if(result) {
+				return logger.error(result.error);
+			}
+		}
+
+		if(rulesets) {
+			logger.progress('Syncing branch rulesets');
+
+			const result = await syncRulesets(octokit, repo.value, rulesets, options.keepRulesets);
 			if(result) {
 				return logger.error(result.error);
 			}

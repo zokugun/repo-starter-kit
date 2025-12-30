@@ -4,7 +4,7 @@ import { type Label, type RepoReference } from '../types.js';
 import { isRecord } from '../utils/is-record.js';
 import * as logger from '../utils/logger.js';
 
-export async function syncLabels(octokit: Octokit, repo: RepoReference, labels: Label[], keepExisting = false): Promise<Failure<string> | undefined> {
+export async function syncLabels(octokit: Octokit, repo: RepoReference, labels: Label[], keepExisting = false): Promise<Failure<string> | undefined> { // {{{
 	if(labels.length === 0) {
 		logger.warn('No labels defined; skipping label sync.');
 		return;
@@ -64,9 +64,9 @@ export async function syncLabels(octokit: Octokit, repo: RepoReference, labels: 
 	}
 
 	await deleteMissingLabels(octokit, repo, desiredNames);
-}
+} // }}}
 
-async function deleteMissingLabels(octokit: Octokit, repo: RepoReference, desiredNames: Set<string>): Promise<void> {
+async function deleteMissingLabels(octokit: Octokit, repo: RepoReference, desiredNames: Set<string>): Promise<void> { // {{{
 	const existingLabels = await octokit.paginate(octokit.rest.issues.listLabelsForRepo, {
 		...repo,
 		per_page: 100,
@@ -84,4 +84,4 @@ async function deleteMissingLabels(octokit: Octokit, repo: RepoReference, desire
 			}
 		}
 	}
-}
+} // }}}

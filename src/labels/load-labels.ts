@@ -22,18 +22,20 @@ export async function loadLabels(filename: string): Promise<Result<Label[], stri
 
 	const labels: Label[] = [];
 
-	for(const record of records) {
+	for(const [index, record] of records.entries()) {
 		if(!isRecord(record)) {
-			continue;
+			return err(`Label entry at index ${index} must be an object.`);
 		}
 
 		const name = String(record.name ?? '').trim();
 		const color = String(record.color ?? '').trim();
 		const description = String(record.description ?? '').trim();
 
-		if(name.length > 0) {
-			labels.push({ name, color, description });
+		if(name.length === 0) {
+			return err(`Label entry at index ${index} must define a non-empty 'name'.`);
 		}
+
+		labels.push({ name, color, description });
 	}
 
 	return ok(labels);

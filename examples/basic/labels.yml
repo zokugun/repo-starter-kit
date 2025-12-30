@@ -1,0 +1,9 @@
+- name: bug
+  color: f85149
+  description: Something isn't working as expected
+- name: enhancement
+  color: a2eeef
+  description: Suggestion or feature improvement
+- name: chore
+  color: d4c5f9
+  description: Maintenance or clean-up task
