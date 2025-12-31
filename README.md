@@ -44,6 +44,7 @@ Options
 -------
 
 - `-r, --repo <owner/name>`: Target repository (OWNER/NAME). Required.
+- `-c, --create`: Create the repository if it does not exist
 - `-l, --labels <path>`: Path to a labels YAML file to apply to the repository. Supports local files or npm URLs such as `npm:@scope/config/labels.yml`.
 - `-i, --issue <path>`: Path to a Markdown file used as an issue template. Supports local files or npm URLs such as `npm:@scope/config/issue.md`.
 - `-b, --rulesets <path>`: Path to a YAML/JSON file containing branch rulesets definitions. Supports local files or npm URLs such as `npm:@scope/config/rulesets.yml`.

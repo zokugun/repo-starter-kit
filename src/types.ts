@@ -1,5 +1,6 @@
 export type CliOptions = {
 	repo: string;
+	create: boolean;
 	labels?: string;
 	issue?: string;
 	rulesets?: string;

@@ -8,6 +8,7 @@ program
 	.version(pkg.version, '-v, --version')
 	.description(pkg.description)
 	.requiredOption('-r, --repo <owner/name>', 'Target repository (OWNER/NAME)')
+	.option('-c, --create', 'Create the repository if it does not exist', false)
 	.option('-l, --labels <path>', 'Path to labels YAML')
 	.option('-i, --issue <path>', 'Path to issue Markdown template')
 	.option('-b, --rulesets <path>', 'Path to branch rulesets YAML/JSON file')

@@ -8,7 +8,7 @@ import { createIssue } from './issues/create-issue.js';
 import { loadIssue } from './issues/load-issue.js';
 import { loadLabels } from './labels/load-labels.js';
 import { syncLabels } from './labels/sync-labels.js';
-import { existsRepo } from './repos/exists-repo.js';
+import { ensureRepo } from './repos/ensure-repo.js';
 import { parseRepo } from './repos/parse-repo.js';
 import { loadRulesets } from './rulesets/load-rulesets.js';
 import { syncRulesets } from './rulesets/sync-rulesets.js';
@@ -21,7 +21,7 @@ type VerificationPrompt = {
 	user_code: string;
 };
 
-export async function run(options: CliOptions) {
+export async function run(options: CliOptions): Promise<void> {
 	const start = Date.now();
 
 	logger.progress('Configuring');
@@ -137,12 +137,9 @@ export async function run(options: CliOptions) {
 			userAgent: 'repo-starter-kit',
 		});
 
-		const exists = await existsRepo(octokit, repo.value);
-		if(exists.fails) {
-			return logger.error(exists.error);
-		}
-		else if(!exists.value) {
-			return logger.error(`The repository ${repo.value.owner}/${repo.value.repo} can't be found!`);
+		const result = await ensureRepo(octokit, repo.value, options.create);
+		if(result.fails) {
+			return logger.error(result.error);
 		}
 
 		if(labels) {
