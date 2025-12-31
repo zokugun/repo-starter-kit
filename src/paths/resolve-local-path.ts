@@ -25,7 +25,7 @@ export function resolveLocalPath(value: string, { absolute, cwd }: { absolute?: 
 		return value;
 	}
 
-	if(!/^..?|(?:..?|~)\/|[^@].*[/\\].*$/.test(value)) {
+	if(!/^(?:\.\.?|(?:\.\.?|~)\/.*|[^@].*[/\\].*)$/.test(value)) {
 		return;
 	}
 
