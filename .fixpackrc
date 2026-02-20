@@ -1,11 +1,11 @@
 {
 	"sortToTop": [
-        "name",
+		"name",
 		"displayName",
-        "description",
-        "version",
+		"description",
+		"version",
 		"private",
-        "author",
+		"author",
 		"publisher",
 		"license",
 		"homepage",
@@ -16,12 +16,14 @@
 		"bin",
 		"exports",
 		"main",
+		"module",
 		"types",
+		"typesVersions",
 		"scripts",
 		"dependencies",
 		"devDependencies",
 		"optionalDependencies",
 		"keywords"
-    ],
+	],
 	"finalNewLine": true
 }

@@ -1,4 +1,4 @@
-import { type Result, yerr, yresa, type YResult } from '@zokugun/xtry';
+import { type Result, yerr, yres, type YResult } from '@zokugun/xtry/async';
 import { isNpmUrl } from '../npms/is-npm-url.js';
 import { resolveLocalPath } from '../paths/resolve-local-path.js';
 import { resolveNpmPath } from '../paths/resolve-npm-path.js';
@@ -15,7 +15,7 @@ export async function loadResource<T>(value: string, loader: (value: string) => 
 	}
 
 	if(filename) {
-		return yresa(loader(filename));
+		return yres(loader(filename));
 	}
 
 	return yerr('not-found');

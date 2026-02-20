@@ -1,5 +1,5 @@
 import { type Octokit } from '@octokit/rest';
-import { err, stringifyError, xatry, type Failure } from '@zokugun/xtry';
+import { err, stringifyError, xtry, type Failure } from '@zokugun/xtry/async';
 import { type Label, type RepoReference } from '../types.js';
 import { isRecord } from '../utils/is-record.js';
 import * as logger from '../utils/logger.js';
@@ -38,7 +38,7 @@ export async function syncLabels(octokit: Octokit, repo: RepoReference, labels: 
 		}
 		catch (error) {
 			if(isRecord(error) && 'status' in error && (error as any).status === 422) {
-				const result = await xatry(octokit.rest.issues.updateLabel({
+				const result = await xtry(octokit.rest.issues.updateLabel({
 					...repo,
 					name: label.name,
 					new_name: label.name,

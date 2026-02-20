@@ -1,14 +1,15 @@
 artifacts:
-  - name: "@daiyam/artifact-lang-js"
-    version: 0.6.1
-    variant: "22"
-  - name: "@daiyam/artifact-lang-ts"
-    version: 0.5.6
-  - name: "@daiyam/artifact-npm-zokugun"
-    version: 0.2.1
-  - name: "@daiyam/artifact-npm-ts"
-    version: 0.3.1
-  - name: "@daiyam/artifact-npm-cli-ts"
-    version: 0.3.0
-  - name: "@daiyam/artifact-gh-issuehub"
-    version: 0.0.0
+  "@daiyam/artifact-lang-js":
+    version: 0.9.3
+    provides:
+      - "22"
+  "@daiyam/artifact-lang-ts":
+    version: 0.6.3
+  "@daiyam/artifact-npm-zokugun":
+    version: 0.2.2
+  "@daiyam/artifact-npm-ts":
+    version: 0.4.3
+  "@daiyam/artifact-npm-cli-ts":
+    version: 0.5.1
+  "@daiyam/artifact-gh-issuehub":
+    version: 0.2.2

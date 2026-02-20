@@ -1,14 +1,12 @@
-import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { err, ok, stringifyError, xtry, type Result, yerr, yress, type YResult } from '@zokugun/xtry';
-import fse from 'fs-extra';
+import fse from '@zokugun/fs-extra-plus/async';
+import { err, ok, stringifyError, xtry, type Result, yerr, yres, type YResult } from '@zokugun/xtry/sync';
 import YAML from 'yaml';
 import { downloadPackage } from '../npms/download-package.js';
 import { normalizePackageName } from '../npms/normalize-package-name.js';
 import { splitNpmPath } from '../npms/split-npm-ath.js';
 import { joinWithinRoot } from '../paths/join-within-root.js';
 import { resolveLocalPath } from '../paths/resolve-local-path.js';
-import { isNodeError } from '../utils/is-node-error.js';
 import { isRecord } from '../utils/is-record.js';
 
 type Config = {
@@ -73,8 +71,11 @@ export async function loadConfig(value: string): Promise<Result<Config, string>>
 
 async function readConfigFromPackage(packageRoot: string, packageName: string): Promise<Result<Config, string>> { // {{{
 	const stat = await fse.stat(packageRoot);
+	if(stat.fails) {
+		return err(stringifyError(stat.error));
+	}
 
-	if(stat.isFile()) {
+	if(stat.value.isFile()) {
 		const result = await tryReadConfigFile(packageRoot, path.dirname(packageRoot), path.basename(packageRoot));
 
 		if(result.fails || result.success) {
@@ -97,29 +98,33 @@ async function readConfigFromPackage(packageRoot: string, packageName: string): 
 } // }}}
 
 async function tryReadConfigFile(filename: string, root: string, name: string, type?: 'yaml' | 'json'): Promise<YResult<Config, string, 'not-found'>> { // {{{
-	try {
-		const content = await readFile(filename, 'utf8');
+	const { fails, error, value: content } = await fse.readFile(filename, 'utf8');
+
+	if(fails) {
+		if(error.code === 'ENOENT') {
+			return yerr('not-found');
+		}
+
+		return err(`Failed to read ${name} from package: ${stringifyError(error)}`);
+	}
+	else {
 		const parsed = parseConfigContent(content, type);
 
 		if(parsed.fails) {
 			return err(`Failed to parse ${name} from package: ${parsed.error}`);
 		}
 
-		return yress(normalizeConfig(parsed.value, root, name));
-	}
-	catch (error) {
-		if(isNodeError(error) && error.code === 'ENOENT') {
-			return yerr('not-found');
-		}
-
-		return err(`Failed to read ${name} from package: ${stringifyError(error)}`);
+		return yres(normalizeConfig(parsed.value, root, name));
 	}
 } // }}}
 
 async function readConfigFromLocal(fileRoot: string): Promise<Result<Config, string>> { // {{{
 	const stat = await fse.stat(fileRoot);
+	if(stat.fails) {
+		return err(stringifyError(stat.error));
+	}
 
-	if(stat.isFile()) {
+	if(stat.value.isFile()) {
 		const result = await tryReadConfigFile(fileRoot, path.dirname(fileRoot), path.basename(fileRoot));
 
 		if(result.fails || result.success) {

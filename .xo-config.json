@@ -48,12 +48,28 @@
 			"error",
 			{
 				"selector": "variable",
-				"modifiers": ["const", "global"],
-				"format": ["camelCase", "UPPER_CASE"]
+				"modifiers": [
+					"const",
+					"global"
+				],
+				"format": [
+					"camelCase",
+					"UPPER_CASE"
+				],
+				"filter": {
+					"regex": "^(__filename|__dirname)$",
+					"match": false
+				}
 			},
 			{
 				"selector": "variable",
-				"format": ["camelCase"]
+				"format": [
+					"camelCase"
+				],
+				"filter": {
+					"regex": "^(__filename|__dirname)$",
+					"match": false
+				}
 			}
 		],
 		"@typescript-eslint/no-confusing-void-expression": "off",
@@ -74,7 +90,7 @@
 		"capitalized-comments": "off",
 		"complexity": "off",
 		"default-case": "off",
-		"import/extensions":  [
+		"import/extensions": [
 			"error",
 			"never"
 		],
@@ -126,13 +142,18 @@
 			"error",
 			{
 				"replacements": {
+					"arg": false,
 					"args": false,
 					"dir": false,
 					"err": false,
+					"fn": false,
 					"func": false,
 					"i": false,
 					"j": false,
-					"pkg": false
+					"mod": false,
+					"num": false,
+					"pkg": false,
+					"str": false
 				}
 			}
 		]

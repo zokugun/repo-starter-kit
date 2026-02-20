@@ -1,0 +1,69 @@
+diff --git a/node_modules/enquirer/index.d.ts b/node_modules/enquirer/index.d.ts
+index 8150fa4..1baad79 100644
+--- a/node_modules/enquirer/index.d.ts
++++ b/node_modules/enquirer/index.d.ts
+@@ -1,6 +1,6 @@
+ import { EventEmitter } from "events";
+
+-interface BasePromptOptions {
++export interface BasePromptOptions {
+   name: string | (() => string)
+   type: string | (() => string)
+   message: string | (() => string) | (() => Promise<string>)
+@@ -19,7 +19,7 @@ interface BasePromptOptions {
+   stdout?: NodeJS.WriteStream
+ }
+
+-interface Choice {
++export interface Choice {
+   name: string
+   message?: string
+   value?: unknown
+@@ -29,7 +29,7 @@ interface Choice {
+   disabled?: boolean | string
+ }
+
+-interface ArrayPromptOptions extends BasePromptOptions {
++export interface ArrayPromptOptions extends BasePromptOptions {
+   type:
+     | 'autocomplete'
+     | 'editable'
+@@ -52,12 +52,12 @@ interface ArrayPromptOptions extends BasePromptOptions {
+   scroll?: boolean
+ }
+
+-interface BooleanPromptOptions extends BasePromptOptions {
++export interface BooleanPromptOptions extends BasePromptOptions {
+   type: 'confirm'
+   initial?: boolean
+ }
+
+-interface StringPromptOptions extends BasePromptOptions {
++export interface StringPromptOptions extends BasePromptOptions {
+   type: 'input' | 'invisible' | 'list' | 'password' | 'text'
+   initial?: string
+   multiline?: boolean
+@@ -75,20 +75,20 @@ interface NumberPromptOptions extends BasePromptOptions {
+   initial?: number
+ }
+
+-interface SnippetPromptOptions extends BasePromptOptions {
++export interface SnippetPromptOptions extends BasePromptOptions {
+   type: 'snippet'
+   newline?: string
+   template?: string
+ }
+
+-interface SortPromptOptions extends BasePromptOptions {
++export interface SortPromptOptions extends BasePromptOptions {
+   type: 'sort'
+   hint?: string
+   drag?: boolean
+   numbered?: boolean
+ }
+
+-type PromptOptions =
++export type PromptOptions =
+   | BasePromptOptions
+   | ArrayPromptOptions
+   | BooleanPromptOptions
