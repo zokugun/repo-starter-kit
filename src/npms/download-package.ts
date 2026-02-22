@@ -1,4 +1,5 @@
 import process from 'node:process';
+import { isNonEmptyString } from '@zokugun/is-it-type';
 import { err, ok, stringifyError, type Result } from '@zokugun/xtry';
 import pacote from 'pacote';
 import { temporaryDirectory } from 'tempy';
@@ -32,7 +33,7 @@ export async function downloadPackage(packageName: string): Promise<Result<strin
 function resolveRegistry(): string {
 	const registry = process.env.npm_config_registry;
 
-	if(typeof registry === 'string' && registry.trim().length > 0) {
+	if(isNonEmptyString<string>(registry)) {
 		return registry;
 	}
 

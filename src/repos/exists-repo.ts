@@ -1,7 +1,7 @@
 import { type Octokit } from '@octokit/rest';
+import { isError } from '@zokugun/is-it-type';
 import { err, ok, type Result, stringifyError } from '@zokugun/xtry';
 import { type RepoReference } from '../types.js';
-import { isRecord } from '../utils/is-record.js';
 
 export async function existsRepo(octokit: Octokit, { owner, repo }: RepoReference): Promise<Result<boolean, string>> {
 	try {
@@ -10,7 +10,7 @@ export async function existsRepo(octokit: Octokit, { owner, repo }: RepoReferenc
 		return ok(true);
 	}
 	catch (error) {
-		if(isRecord(error) && 'status' in error && (error as any).status === 404) {
+		if(isError(error) && 'status' in error && error.status === 404) {
 			return ok(false);
 		}
 

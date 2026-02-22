@@ -1,10 +1,11 @@
-import { type Octokit } from '@octokit/rest';
+import { isError } from '@zokugun/is-it-type';
 import { err, stringifyError, xtry, type Failure } from '@zokugun/xtry/async';
-import { type Label, type RepoReference } from '../types.js';
-import { isRecord } from '../utils/is-record.js';
+import { type Context, type Label } from '../types.js';
 import * as logger from '../utils/logger.js';
 
-export async function syncLabels(octokit: Octokit, repo: RepoReference, labels: Label[], keepExisting = false): Promise<Failure<string> | undefined> { // {{{
+export async function syncLabels(context: Context, labels: Label[], keepExisting = false): Promise<Failure<string> | undefined> { // {{{
+	const { octokit, owner, repositoryName } = context;
+
 	if(labels.length === 0) {
 		logger.warn('No labels defined; skipping label sync.');
 		return;
@@ -28,7 +29,8 @@ export async function syncLabels(octokit: Octokit, repo: RepoReference, labels: 
 
 		try {
 			await octokit.rest.issues.createLabel({
-				...repo,
+				owner,
+				repo: repositoryName,
 				name: label.name,
 				color,
 				description: label.description,
@@ -37,9 +39,10 @@ export async function syncLabels(octokit: Octokit, repo: RepoReference, labels: 
 			logger.log(`Created label: ${label.name}`);
 		}
 		catch (error) {
-			if(isRecord(error) && 'status' in error && (error as any).status === 422) {
+			if(isError(error) && 'status' in error && error.status === 422) {
 				const result = await xtry(octokit.rest.issues.updateLabel({
-					...repo,
+					owner,
+					repo: repositoryName,
 					name: label.name,
 					new_name: label.name,
 					color,
@@ -63,19 +66,21 @@ export async function syncLabels(octokit: Octokit, repo: RepoReference, labels: 
 		return;
 	}
 
-	await deleteMissingLabels(octokit, repo, desiredNames);
+	await deleteMissingLabels(context, desiredNames);
 } // }}}
 
-async function deleteMissingLabels(octokit: Octokit, repo: RepoReference, desiredNames: Set<string>): Promise<void> { // {{{
+async function deleteMissingLabels(context: Context, desiredNames: Set<string>): Promise<void> { // {{{
+	const { octokit, owner, repositoryName } = context;
 	const existingLabels = await octokit.paginate(octokit.rest.issues.listLabelsForRepo, {
-		...repo,
+		owner,
+		repo: repositoryName,
 		per_page: 100,
 	});
 
 	for(const existing of existingLabels) {
 		if(!desiredNames.has(existing.name)) {
 			try {
-				await octokit.rest.issues.deleteLabel({ ...repo, name: existing.name });
+				await octokit.rest.issues.deleteLabel({ owner, repo: repositoryName, name: existing.name });
 
 				logger.log(`Deleted label: ${existing.name}`);
 			}

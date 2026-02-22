@@ -1,22 +1,26 @@
-import { type Octokit } from '@octokit/rest';
+import { type OctokitResponse } from '@octokit/types';
+import { isError } from '@zokugun/is-it-type';
 import { type Result, ok, err, stringifyError } from '@zokugun/xtry';
-import { type RepoReference } from '../types.js';
-import { isRecord } from '../utils/is-record.js';
+import { type Context, type NewRepository } from '../types.js';
 import * as logger from '../utils/logger.js';
 
-export async function ensureRepo(octokit: Octokit, { owner, repo }: RepoReference, shouldCreate: boolean): Promise<Result<void, string>> {
+export async function ensureRepo(context: Context, shouldCreate: boolean, newRepository?: NewRepository): Promise<Result<void, string>> {
+	const { octokit, owner, repositoryName } = context;
+
 	try {
-		await octokit.rest.repos.get({ owner, repo });
+		const response = await octokit.rest.repos.get({ owner, repo: repositoryName });
+
+		context.repositoryId = response.data.node_id;
 
 		return ok();
 	}
 	catch (error) {
-		if(isRecord(error) && 'status' in error && (error as any).status === 404) {
+		if(isError(error) && 'status' in error && error.status === 404) {
 			if(shouldCreate) {
-				return createRepository(octokit, owner, repo);
+				return createRepository(context, newRepository);
 			}
 			else {
-				return err(`Repository ${owner}/${repo} not found. Pass --create to create it automatically.`);
+				return err(`Repository ${owner}/${repositoryName} not found. Pass --create to create it automatically.`);
 			}
 		}
 		else {
@@ -25,25 +29,46 @@ export async function ensureRepo(octokit: Octokit, { owner, repo }: RepoReferenc
 	}
 }
 
-async function createRepository(octokit: Octokit, owner: string, repo: string): Promise<Result<void, string>> {
+async function createRepository(context: Context, newRepository?: NewRepository): Promise<Result<void, string>> {
+	const { octokit, owner, repositoryName } = context;
 	const { data: viewer } = await octokit.rest.users.getAuthenticated();
 	const isUserRepo = viewer.login.toLowerCase() === owner.toLowerCase();
 
-	logger.progress(`Creating repository ${owner}/${repo}`);
+	logger.progress(`Creating repository ${owner}/${repositoryName}`);
+
+	const features: { has_discussions?: boolean; has_issues?: boolean;has_projects?: boolean;has_wiki?: boolean } = {};
+
+	if(newRepository) {
+		features.has_discussions = newRepository.features.discussions;
+		features.has_issues = newRepository?.features.issues;
+		features.has_projects = newRepository?.features.projects;
+		features.has_wiki = newRepository?.features.wiki;
+	}
 
 	try {
+		let response: OctokitResponse<{ node_id: string }>;
+
 		if(isUserRepo) {
-			await octokit.rest.repos.createForAuthenticatedUser({ name: repo });
+			response = await octokit.rest.repos.createForAuthenticatedUser({
+				name: repositoryName,
+				...features,
+			});
 		}
 		else {
-			await octokit.rest.repos.createInOrg({ org: owner, name: repo });
+			response = await octokit.rest.repos.createInOrg({
+				org: owner,
+				name: repositoryName,
+				...features,
+			});
 		}
+
+		context.repositoryId = response.data.node_id;
 
 		return ok();
 	}
 	catch (error) {
 		const message = stringifyError(error);
 
-		return err(`Failed to create repository ${owner}/${repo}: ${message}`);
+		return err(`Failed to create repository ${owner}/${repositoryName}: ${message}`);
 	}
 }

@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
+import { isNonBlankString, isRecord } from '@zokugun/is-it-type';
 import { err, ok, stringifyError, type Result } from '@zokugun/xtry';
 import YAML from 'yaml';
 import { type Ruleset } from '../types.js';
-import { isRecord } from '../utils/is-record.js';
 
 export async function loadRulesets(filename: string): Promise<Result<Ruleset[], string>> {
 	let content: string;
@@ -34,7 +34,7 @@ export async function loadRulesets(filename: string): Promise<Result<Ruleset[], 
 			return err(`Ruleset entry at index ${index} must be an object.`);
 		}
 
-		const name = typeof record.name === 'string' ? record.name.trim() : '';
+		const name = isNonBlankString<string>(record.name) ? record.name.trim() : '';
 
 		if(name.length === 0) {
 			return err(`Ruleset entry at index ${index} must define a non-empty 'name'.`);

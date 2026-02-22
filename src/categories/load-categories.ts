@@ -2,9 +2,9 @@ import { readFile } from 'node:fs/promises';
 import { isRecord } from '@zokugun/is-it-type';
 import { err, ok, stringifyError, type Result } from '@zokugun/xtry';
 import YAML from 'yaml';
-import { type Label } from '../types.js';
+import { type Category } from '../types.js';
 
-export async function loadLabels(filename: string): Promise<Result<Label[], string>> {
+export async function loadCategories(filename: string): Promise<Result<Category[], string>> {
 	let content: string;
 
 	try {
@@ -17,26 +17,27 @@ export async function loadLabels(filename: string): Promise<Result<Label[], stri
 	const records: unknown = YAML.parse(content);
 
 	if(!Array.isArray(records)) {
-		return err(`Label file ${filename} must contain an array.`);
+		return err(`Category file ${filename} must contain an array.`);
 	}
 
-	const labels: Label[] = [];
+	const categories: Category[] = [];
 
 	for(const [index, record] of records.entries()) {
 		if(!isRecord(record)) {
-			return err(`Label entry at index ${index} must be an object.`);
+			return err(`Category entry at index ${index} must be an object.`);
 		}
 
 		const name = String(record.name ?? '').trim();
-		const color = String(record.color ?? '').trim();
 		const description = String(record.description ?? '').trim();
+		const emoji = String(record.emoji ?? '').trim();
+		const format = record.format === 'announcement' || record.format === 'answer' || record.format === 'poll' ? record.format : 'open';
 
 		if(name.length === 0) {
-			return err(`Label entry at index ${index} must define a non-empty 'name'.`);
+			return err(`Category entry at index ${index} must define a non-empty 'name'.`);
 		}
 
-		labels.push({ name, color, description });
+		categories.push({ name, description, emoji, format });
 	}
 
-	return ok(labels);
+	return ok(categories);
 }

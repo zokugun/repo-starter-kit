@@ -1,0 +1,17 @@
+- name: Announcements
+  description: Updates from maintainers.
+  emoji: ':mega:'
+  format: announcement
+- name: General
+  description: Chat about anything and everything here.
+  emoji: ':speech_balloon:'
+- name: Feature Requests, Ideas
+  description: Share ideas for new features and discuss how they should be implemented.
+  emoji: ':bulb:'
+- name: Q&A
+  description: Ask the community for help. Please search for issue tracker and previously asked questions before asking.
+  emoji: ':pray:'
+  format: 'answer'
+- name: Issue Triage
+  description: Report existing features that aren't working as expected.
+  emoji: ':anger:'

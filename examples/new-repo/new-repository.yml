@@ -1,0 +1,5 @@
+features:
+  discussions: true
+  issues: true
+  projects: false
+  wiki: false

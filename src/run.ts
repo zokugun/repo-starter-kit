@@ -3,16 +3,21 @@ import { Octokit } from '@octokit/rest';
 import clipboardy from 'clipboardy';
 import enquirer from 'enquirer';
 import open from 'open';
+import { loadCategories } from './categories/load-categories.js';
+import { syncCategories } from './categories/sync-categories.js';
 import { loadConfig } from './config/load-package-config.js';
+import { createDiscussion } from './discussions/create-discussion.js';
+import { loadDiscussion } from './discussions/load-discussion.js';
 import { createIssue } from './issues/create-issue.js';
 import { loadIssue } from './issues/load-issue.js';
 import { loadLabels } from './labels/load-labels.js';
 import { syncLabels } from './labels/sync-labels.js';
 import { ensureRepo } from './repos/ensure-repo.js';
+import { loadNewRepository } from './repos/load-new-repository.js';
 import { parseRepo } from './repos/parse-repo.js';
 import { loadRulesets } from './rulesets/load-rulesets.js';
 import { syncRulesets } from './rulesets/sync-rulesets.js';
-import { type CliOptions, type Issue, type Label, type Ruleset } from './types.js';
+import { type Category, type Context, type Discussion, type NewRepository, type CliOptions, type Issue, type Label, type Ruleset, type OrderItem } from './types.js';
 import { loadResource } from './utils/load-resource.js';
 import * as logger from './utils/logger.js';
 
@@ -33,56 +38,43 @@ export async function run(options: CliOptions): Promise<void> {
 
 	logger.progress('Loading');
 
-	let labels: Label[] | undefined;
+	let categories: Category[] | undefined;
+	let discussion: Discussion | undefined;
 	let issue: Issue | undefined;
+	let labels: Label[] | undefined;
+	let newRepository: NewRepository | undefined;
 	let rulesets: Ruleset[] | undefined;
+	let order: OrderItem[] = ['discussion', 'issue'];
 
-	if(options.labels) {
-		const result = await loadResource(options.labels, loadLabels);
+	const { keep } = options;
 
-		if(result.fails) {
-			return logger.error(result.error);
-		}
-
-		labels = result.value;
-	}
-
-	if(options.issue) {
-		const result = await loadResource(options.issue, loadIssue);
-
-		if(result.fails) {
-			return logger.error(result.error);
-		}
-
-		issue = result.value;
-	}
-
-	if(options.rulesets) {
-		const result = await loadResource(options.rulesets, loadRulesets);
-		if(result.fails) {
-			return logger.error(result.error);
-		}
-
-		rulesets = result.value;
-	}
-
-	if(!labels && !issue && !rulesets && options.package) {
+	if(options.package) {
 		const config = await loadConfig(options.package);
 		if(config.fails) {
 			return logger.error(config.error);
 		}
 
-		if(!labels && config.value.labels) {
-			const result = await loadResource(config.value.labels, loadLabels, { cwd: config.value.root });
+		if(config.value.categories) {
+			const result = await loadResource(config.value.categories, loadCategories, { cwd: config.value.root });
 
 			if(result.fails) {
 				return logger.error(result.error);
 			}
 
-			labels = result.value;
+			categories = result.value;
 		}
 
-		if(!issue && config.value.issue) {
+		if(config.value.discussion) {
+			const result = await loadResource(config.value.discussion, loadDiscussion, { cwd: config.value.root });
+
+			if(result.fails) {
+				return logger.error(result.error);
+			}
+
+			discussion = result.value;
+		}
+
+		if(config.value.issue) {
 			const result = await loadResource(config.value.issue, loadIssue, { cwd: config.value.root });
 
 			if(result.fails) {
@@ -92,7 +84,27 @@ export async function run(options: CliOptions): Promise<void> {
 			issue = result.value;
 		}
 
-		if(!rulesets && config.value.rulesets) {
+		if(config.value.labels) {
+			const result = await loadResource(config.value.labels, loadLabels, { cwd: config.value.root });
+
+			if(result.fails) {
+				return logger.error(result.error);
+			}
+
+			labels = result.value;
+		}
+
+		if(config.value.newRepository) {
+			const result = await loadResource(config.value.newRepository, loadNewRepository, { cwd: config.value.root });
+
+			if(result.fails) {
+				return logger.error(result.error);
+			}
+
+			newRepository = result.value;
+		}
+
+		if(config.value.rulesets) {
 			rulesets = [];
 
 			for(const ruleset of config.value.rulesets) {
@@ -107,9 +119,13 @@ export async function run(options: CliOptions): Promise<void> {
 				}
 			}
 		}
+
+		if(config.value.order) {
+			order = config.value.order;
+		}
 	}
 
-	if(labels ?? issue ?? rulesets) {
+	if(options.create || (categories ?? discussion ?? labels ?? issue ?? rulesets)) {
 		const octokit = new Octokit({
 			authStrategy: createOAuthDeviceAuth,
 			auth: {
@@ -117,14 +133,14 @@ export async function run(options: CliOptions): Promise<void> {
 				clientType: 'oauth-app',
 				scopes: ['repo'],
 				async onVerification({ verification_uri, user_code }: VerificationPrompt) {
-					logger.log('Authenticate your account at:');
-					logger.log(verification_uri);
-					logger.log('Press ENTER to open in the browser...');
+					logger.pause();
+
+					logger.log(`Authenticate your account at: ${verification_uri}`);
 
 					await enquirer.prompt({
 						type: 'invisible',
 						name: 'open',
-						message: '',
+						message: 'Press ENTER to open in the browser...',
 					});
 
 					await open(verification_uri);
@@ -132,12 +148,16 @@ export async function run(options: CliOptions): Promise<void> {
 					await clipboardy.write(user_code);
 
 					logger.log(`Paste code: ${user_code} (copied to your clipboard)`);
+
+					logger.resume();
 				},
 			},
 			userAgent: 'repo-starter-kit',
 		});
 
-		const result = await ensureRepo(octokit, repo.value, options.create);
+		const context: Context = { owner: repo.value.owner, repositoryName: repo.value.repo, octokit };
+
+		const result = await ensureRepo(context, options.create, newRepository);
 		if(result.fails) {
 			return logger.error(result.error);
 		}
@@ -145,31 +165,54 @@ export async function run(options: CliOptions): Promise<void> {
 		if(labels) {
 			logger.progress('Syncing labels');
 
-			const result = await syncLabels(octokit, repo.value, labels, options.keepLabels);
+			const result = await syncLabels(context, labels, keep);
 			if(result) {
 				return logger.error(result.error);
 			}
 		}
 
-		if(issue) {
-			logger.progress('Creating issue');
+		if(categories) {
+			logger.progress('Syncing categories');
 
-			const result = await createIssue(octokit, repo.value, issue);
+			const result = await syncCategories(context, categories, keep);
 			if(result) {
 				return logger.error(result.error);
+			}
+		}
+
+		for(const resource of order) {
+			if(resource === 'discussion' && discussion) {
+				logger.progress('Creating discussion');
+
+				const result = await createDiscussion(context, discussion);
+				if(result) {
+					return logger.error(result.error);
+				}
+			}
+			else if(resource === 'issue' && issue) {
+				logger.progress('Creating issue');
+
+				const result = await createIssue(context, issue);
+				if(result) {
+					return logger.error(result.error);
+				}
 			}
 		}
 
 		if(rulesets) {
 			logger.progress('Syncing branch rulesets');
 
-			const result = await syncRulesets(octokit, repo.value, rulesets, options.keepRulesets);
+			const result = await syncRulesets(context, rulesets, keep);
 			if(result) {
 				return logger.error(result.error);
 			}
 		}
 
-		logger.log(`Repository bootstrap completed for ${repo.value.owner}/${repo.value.repo}`);
+		if(context.browser) {
+			await context.browser.close().catch(() => undefined);
+		}
+
+		logger.log(`Repository bootstrap completed for https://github.com/${repo.value.owner}/${repo.value.repo}`);
 	}
 	else {
 		logger.log('Nothing to do!');

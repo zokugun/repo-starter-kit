@@ -1,5 +1,6 @@
 import path from 'node:path';
 import fse from '@zokugun/fs-extra-plus/async';
+import { isArray, isEquals, isNonBlankString, isRecord } from '@zokugun/is-it-type';
 import { err, ok, stringifyError, xtry, type Result, yerr, yres, type YResult } from '@zokugun/xtry/sync';
 import YAML from 'yaml';
 import { downloadPackage } from '../npms/download-package.js';
@@ -7,14 +8,7 @@ import { normalizePackageName } from '../npms/normalize-package-name.js';
 import { splitNpmPath } from '../npms/split-npm-ath.js';
 import { joinWithinRoot } from '../paths/join-within-root.js';
 import { resolveLocalPath } from '../paths/resolve-local-path.js';
-import { isRecord } from '../utils/is-record.js';
-
-type Config = {
-	root: string;
-	labels?: string;
-	issue?: string;
-	rulesets?: string[];
-};
+import { type OrderItem, type Config } from '../types.js';
 
 const CONFIG_FILES: Array<{ name: string; type?: 'yaml' | 'json' }> = [
 	{
@@ -169,21 +163,35 @@ function normalizeConfig(data: unknown, root: string, source: string): Result<Co
 		return err(`Config file ${source} must export an object.`);
 	}
 
-	const labels = typeof data.labels === 'string' ? data.labels : undefined;
-	const issue = typeof data.issue === 'string' ? data.issue : undefined;
+	const categories = isNonBlankString<string>(data.categories) ? data.categories : undefined;
+	const discussion = isNonBlankString<string>(data.discussion) ? data.discussion : undefined;
+	const labels = isNonBlankString<string>(data.labels) ? data.labels : undefined;
+	const newRepository = isNonBlankString<string>(data.newRepository) ? data.newRepository : undefined;
+	const issue = isNonBlankString<string>(data.issue) ? data.issue : undefined;
+
 	let rulesets: string[] | undefined;
 
-	if(typeof data.rulesets === 'string') {
+	if(isNonBlankString<string>(data.rulesets)) {
 		rulesets = [data.rulesets];
 	}
-	else if(Array.isArray(data.rulesets) && data.rulesets.every((ruleset) => typeof ruleset === 'string')) {
+	else if(isArray<string>(data.rulesets, isNonBlankString)) {
 		rulesets = data.rulesets;
+	}
+
+	let order: OrderItem[] | undefined;
+
+	if(isArray<OrderItem>(data.order, (item) => isEquals(item, 'discussion', 'issue'))) {
+		order = data.order;
 	}
 
 	return ok({
 		root,
-		labels,
+		categories,
+		discussion,
 		issue,
+		labels,
+		newRepository,
 		rulesets,
+		order,
 	});
 } // }}}

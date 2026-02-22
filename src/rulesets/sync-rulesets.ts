@@ -1,7 +1,6 @@
-import { type Octokit } from '@octokit/rest';
+import { isNonBlankString, isRecord } from '@zokugun/is-it-type';
 import { err, stringifyError, type Failure } from '@zokugun/xtry';
-import { type RepoReference, type Ruleset } from '../types.js';
-import { isRecord } from '../utils/is-record.js';
+import { type Context, type Ruleset } from '../types.js';
 import * as logger from '../utils/logger.js';
 
 type RulesetTarget = 'branch' | 'tag' | 'push';
@@ -13,7 +12,9 @@ type RulesetPayload = Record<string, unknown> & {
 	enforcement: RulesetEnforcement;
 };
 
-export async function syncRulesets(octokit: Octokit, repo: RepoReference, rulesets: Ruleset[], keepExisting = false): Promise<Failure<string> | undefined> { // {{{
+export async function syncRulesets(context: Context, rulesets: Ruleset[], keepExisting = false): Promise<Failure<string> | undefined> { // {{{
+	const { octokit, owner, repositoryName } = context;
+
 	if(rulesets.length === 0) {
 		logger.warn('No branch rulesets defined; skipping ruleset sync.');
 		return;
@@ -23,7 +24,8 @@ export async function syncRulesets(octokit: Octokit, repo: RepoReference, rulese
 
 	try {
 		existingEntries = await octokit.paginate('GET /repos/{owner}/{repo}/rulesets', {
-			...repo,
+			owner,
+			repo: repositoryName,
 			per_page: 100,
 		});
 	}
@@ -39,7 +41,7 @@ export async function syncRulesets(octokit: Octokit, repo: RepoReference, rulese
 		}
 
 		const id = typeof entry.id === 'number' ? entry.id : Number(entry.id);
-		const name = typeof entry.name === 'string' ? entry.name : '';
+		const name = isNonBlankString<string>(entry.name) ? entry.name : '';
 
 		if(Number.isFinite(id) && name.length > 0) {
 			existingByName.set(name, { id: Number(id), name });
@@ -54,7 +56,7 @@ export async function syncRulesets(octokit: Octokit, repo: RepoReference, rulese
 		const existing = existingByName.get(desired.name);
 
 		if(existing) {
-			const result = await updateRuleset(octokit, repo, existing.id, payload);
+			const result = await updateRuleset(context, existing.id, payload);
 			if(result) {
 				return result;
 			}
@@ -62,7 +64,7 @@ export async function syncRulesets(octokit: Octokit, repo: RepoReference, rulese
 			logger.log(`Updated ruleset: ${desired.name}`);
 		}
 		else {
-			const result = await createRuleset(octokit, repo, payload);
+			const result = await createRuleset(context, payload);
 			if(result) {
 				return result;
 			}
@@ -78,7 +80,7 @@ export async function syncRulesets(octokit: Octokit, repo: RepoReference, rulese
 
 	for(const existing of existingByName.values()) {
 		if(!desiredNames.has(existing.name)) {
-			const result = await deleteRuleset(octokit, repo, existing.id, existing.name);
+			const result = await deleteRuleset(context, existing.id, existing.name);
 			if(result) {
 				return result;
 			}
@@ -110,10 +112,13 @@ function normalizeRulesetPayload(ruleset: Ruleset): RulesetPayload { // {{{
 	};
 } // }}}
 
-async function createRuleset(octokit: Octokit, repo: RepoReference, payload: RulesetPayload): Promise<Failure<string> | undefined> { // {{{
+async function createRuleset(context: Context, payload: RulesetPayload): Promise<Failure<string> | undefined> { // {{{
+	const { octokit, owner, repositoryName } = context;
+
 	try {
 		await octokit.request('POST /repos/{owner}/{repo}/rulesets', {
-			...repo,
+			owner,
+			repo: repositoryName,
 			...payload,
 		});
 	}
@@ -122,10 +127,13 @@ async function createRuleset(octokit: Octokit, repo: RepoReference, payload: Rul
 	}
 } // }}}
 
-async function updateRuleset(octokit: Octokit, repo: RepoReference, id: number, payload: RulesetPayload): Promise<Failure<string> | undefined> { // {{{
+async function updateRuleset(context: Context, id: number, payload: RulesetPayload): Promise<Failure<string> | undefined> { // {{{
+	const { octokit, owner, repositoryName } = context;
+
 	try {
 		await octokit.request('PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}', {
-			...repo,
+			owner,
+			repo: repositoryName,
 			ruleset_id: id,
 			...payload,
 		});
@@ -135,10 +143,13 @@ async function updateRuleset(octokit: Octokit, repo: RepoReference, id: number, 
 	}
 } // }}}
 
-async function deleteRuleset(octokit: Octokit, repo: RepoReference, id: number, name: string): Promise<Failure<string> | undefined> { // {{{
+async function deleteRuleset(context: Context, id: number, name: string): Promise<Failure<string> | undefined> { // {{{
+	const { octokit, owner, repositoryName } = context;
+
 	try {
 		await octokit.request('DELETE /repos/{owner}/{repo}/rulesets/{ruleset_id}', {
-			...repo,
+			owner,
+			repo: repositoryName,
 			ruleset_id: id,
 		});
 	}
@@ -150,7 +161,7 @@ async function deleteRuleset(octokit: Octokit, repo: RepoReference, id: number, 
 } // }}}
 
 function normalizeTarget(value: unknown): RulesetTarget { // {{{
-	if(typeof value === 'string') {
+	if(isNonBlankString<string>(value)) {
 		const normalized = value.trim().toLowerCase();
 		if(normalized === 'branch' || normalized === 'tag' || normalized === 'push') {
 			return normalized as RulesetTarget;
@@ -161,7 +172,7 @@ function normalizeTarget(value: unknown): RulesetTarget { // {{{
 } // }}}
 
 function normalizeEnforcement(value: unknown): RulesetEnforcement { // {{{
-	if(typeof value === 'string') {
+	if(isNonBlankString<string>(value)) {
 		const normalized = value.trim().toLowerCase();
 		if(normalized === 'active' || normalized === 'disabled' || normalized === 'evaluate') {
 			return normalized as RulesetEnforcement;
