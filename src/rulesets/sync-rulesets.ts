@@ -1,7 +1,7 @@
+import logger from '@zokugun/cli-utils/logger';
 import { isNonBlankString, isRecord } from '@zokugun/is-it-type';
 import { err, stringifyError, type Failure } from '@zokugun/xtry';
 import { type Context, type Ruleset } from '../types.js';
-import * as logger from '../utils/logger.js';
 
 type RulesetTarget = 'branch' | 'tag' | 'push';
 type RulesetEnforcement = 'active' | 'disabled' | 'evaluate';
@@ -61,7 +61,7 @@ export async function syncRulesets(context: Context, rulesets: Ruleset[], keepEx
 				return result;
 			}
 
-			logger.log(`Updated ruleset: ${desired.name}`);
+			logger.info(`Updated ruleset: ${desired.name}`);
 		}
 		else {
 			const result = await createRuleset(context, payload);
@@ -69,12 +69,12 @@ export async function syncRulesets(context: Context, rulesets: Ruleset[], keepEx
 				return result;
 			}
 
-			logger.log(`Created ruleset: ${desired.name}`);
+			logger.info(`Created ruleset: ${desired.name}`);
 		}
 	}
 
 	if(keepExisting) {
-		logger.log('Keeping existing rulesets that are not in the configuration.');
+		logger.info('Keeping existing rulesets that are not in the configuration.');
 		return;
 	}
 
@@ -157,7 +157,7 @@ async function deleteRuleset(context: Context, id: number, name: string): Promis
 		return err(`Failed to delete ruleset '${name}': ${stringifyError(error)}`);
 	}
 
-	logger.log(`Deleted ruleset: ${name}`);
+	logger.info(`Deleted ruleset: ${name}`);
 } // }}}
 
 function normalizeTarget(value: unknown): RulesetTarget { // {{{

@@ -1,6 +1,6 @@
+import logger from '@zokugun/cli-utils/logger';
 import { err, type Failure, stringifyError } from '@zokugun/xtry';
 import { type Context, type Discussion } from '../types.js';
-import * as logger from '../utils/logger.js';
 import { openPage } from '../utils/open-page.js';
 
 type CategoriesResponse = {
@@ -29,7 +29,7 @@ export async function createDiscussion(context: Context, { title, body, category
 	const { octokit, owner, repositoryName, repositoryId } = context;
 
 	try {
-		logger.log(`Creating discussion '${title}'`);
+		logger.info(`Creating discussion '${title}'`);
 
 		const categories: CategoriesResponse = await octokit.graphql(
 			`query listCategories($owner: String!, $name: String!) {
@@ -88,7 +88,7 @@ export async function createDiscussion(context: Context, { title, body, category
 		const discussionNumber = response.createDiscussion.discussion.number;
 
 		if(labels.length > 0) {
-			logger.log(`Adding labels to discussion '${title}'`);
+			logger.info(`Adding labels to discussion '${title}'`);
 
 			const labelsForRepo = await octokit.rest.issues.listLabelsForRepo({
 				owner,
@@ -123,7 +123,7 @@ export async function createDiscussion(context: Context, { title, body, category
 		}
 
 		if(close) {
-			logger.log(`Closing discussion '${title}'`);
+			logger.info(`Closing discussion '${title}'`);
 
 			const reason = close === 'resolved' ? 'RESOLVED' : 'OUTDATED';
 
@@ -144,7 +144,7 @@ export async function createDiscussion(context: Context, { title, body, category
 		}
 
 		if(lock) {
-			logger.log(`Locking discussion '${title}'`);
+			logger.info(`Locking discussion '${title}'`);
 
 			await octokit.graphql(
 				`mutation lockDiscussion($discussionId: ID!) {
@@ -161,7 +161,7 @@ export async function createDiscussion(context: Context, { title, body, category
 		}
 
 		if(pin) {
-			logger.log(`Pinning discussion '${title}'`);
+			logger.info(`Pinning discussion '${title}'`);
 
 			const openResult = await openPage(context);
 			if(openResult.fails) {
@@ -185,7 +185,7 @@ export async function createDiscussion(context: Context, { title, body, category
 			await page.waitForLoadState('networkidle', { timeout: 1000 }).catch(() => undefined);
 		}
 
-		logger.log(`Created discussion '${title}' (#${discussionNumber}).`);
+		logger.info(`Created discussion '${title}' (#${discussionNumber}).`);
 	}
 	catch (error) {
 		return err(stringifyError(error));

@@ -1,7 +1,7 @@
 import { createOAuthDeviceAuth } from '@octokit/auth-oauth-device';
 import { Octokit } from '@octokit/rest';
+import { enquirer, logger } from '@zokugun/cli-utils';
 import clipboardy from 'clipboardy';
-import enquirer from 'enquirer';
 import open from 'open';
 import { loadCategories } from './categories/load-categories.js';
 import { syncCategories } from './categories/sync-categories.js';
@@ -19,7 +19,6 @@ import { loadRulesets } from './rulesets/load-rulesets.js';
 import { syncRulesets } from './rulesets/sync-rulesets.js';
 import { type Category, type Context, type Discussion, type NewRepository, type CliOptions, type Issue, type Label, type Ruleset, type OrderItem } from './types.js';
 import { loadResource } from './utils/load-resource.js';
-import * as logger from './utils/logger.js';
 
 type VerificationPrompt = {
 	verification_uri: string;
@@ -27,8 +26,7 @@ type VerificationPrompt = {
 };
 
 export async function run(options: CliOptions): Promise<void> {
-	const start = Date.now();
-
+	logger.begin();
 	logger.progress('Configuring');
 
 	const repo = parseRepo(options.repo);
@@ -135,7 +133,7 @@ export async function run(options: CliOptions): Promise<void> {
 				async onVerification({ verification_uri, user_code }: VerificationPrompt) {
 					logger.pause();
 
-					logger.log(`Authenticate your account at: ${verification_uri}`);
+					logger.info(`Authenticate your account at: ${verification_uri}`);
 
 					await enquirer.prompt({
 						type: 'invisible',
@@ -147,7 +145,7 @@ export async function run(options: CliOptions): Promise<void> {
 
 					await clipboardy.write(user_code);
 
-					logger.log(`Paste code: ${user_code} (copied to your clipboard)`);
+					logger.info(`Paste code: ${user_code} (copied to your clipboard)`);
 
 					logger.resume();
 				},
@@ -212,13 +210,11 @@ export async function run(options: CliOptions): Promise<void> {
 			await context.browser.close().catch(() => undefined);
 		}
 
-		logger.log(`Repository bootstrap completed for https://github.com/${repo.value.owner}/${repo.value.repo}`);
+		logger.info(`Repository bootstrap completed for https://github.com/${repo.value.owner}/${repo.value.repo}`);
 	}
 	else {
-		logger.log('Nothing to do!');
+		logger.info('Nothing to do!');
 	}
 
-	const duration = Math.ceil((Date.now() - start) / 1000);
-
-	logger.finish(duration);
+	logger.finish();
 }

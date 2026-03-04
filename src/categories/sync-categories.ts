@@ -1,6 +1,6 @@
+import logger from '@zokugun/cli-utils/logger';
 import { err, type Failure, stringifyError } from '@zokugun/xtry';
 import { type Context, type PagedContext, type Category } from '../types.js';
-import * as logger from '../utils/logger.js';
 import { openPage } from '../utils/open-page.js';
 
 type QueryNode = {
@@ -136,7 +136,7 @@ export async function syncCategories(context: Context, categories: Category[], k
 		}
 
 		if(keepExisting) {
-			logger.log('Keeping existing categories that are not in the configuration.');
+			logger.info('Keeping existing categories that are not in the configuration.');
 			return;
 		}
 
@@ -159,7 +159,7 @@ async function deleteMissings(context: PagedContext, existings: QueryNode[], des
 } // }}}
 
 async function createCategory({ page, owner, repositoryName }: PagedContext, category: Category): Promise<void> {
-	logger.log(`Creating category: ${category.name}`);
+	logger.info(`Creating category: ${category.name}`);
 
 	await page.goto(`https://github.com/${owner}/${repositoryName}/discussions/categories/new`, {
 		waitUntil: 'domcontentloaded',
@@ -195,7 +195,7 @@ async function createCategory({ page, owner, repositoryName }: PagedContext, cat
 }
 
 async function updateCategory({ page, owner, repositoryName }: PagedContext, category: Category, id: string): Promise<void> {
-	logger.log(`Updating category: ${category.name}`);
+	logger.info(`Updating category: ${category.name}`);
 
 	await page.goto(`https://github.com/${owner}/${repositoryName}/discussions/categories/${id}/edit`, {
 		waitUntil: 'domcontentloaded',
@@ -231,7 +231,7 @@ async function updateCategory({ page, owner, repositoryName }: PagedContext, cat
 }
 
 async function deleteCategory({ page, owner, repositoryName }: PagedContext, category: QueryNode): Promise<void> {
-	logger.log(`Deleting category: ${category.name}`);
+	logger.info(`Deleting category: ${category.name}`);
 
 	await page.goto(`https://github.com/${owner}/${repositoryName}/discussions/categories`, {
 		waitUntil: 'domcontentloaded',

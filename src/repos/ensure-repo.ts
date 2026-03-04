@@ -1,8 +1,8 @@
 import { type OctokitResponse } from '@octokit/types';
+import logger from '@zokugun/cli-utils/logger';
 import { isError } from '@zokugun/is-it-type';
 import { type Result, ok, err, stringifyError } from '@zokugun/xtry';
 import { type Context, type NewRepository } from '../types.js';
-import * as logger from '../utils/logger.js';
 
 export async function ensureRepo(context: Context, shouldCreate: boolean, newRepository?: NewRepository): Promise<Result<void, string>> {
 	const { octokit, owner, repositoryName } = context;

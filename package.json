@@ -24,12 +24,12 @@
 	},
 	"main": "lib/cli.js",
 	"scripts": {
+		"build": "npm run clean && npm run compile:src",
 		"clean": "rimraf lib",
 		"compile:src": "tsc -p src",
 		"lint": "xo",
 		"lint:fix": "xo --fix",
-		"postinstall": "patch-package",
-		"prepack": "npm run compile:src",
+		"prepack": "npm run build",
 		"prepare": "husky; fixpack || true",
 		"release": "release-it",
 		"watch:src": "tsc-watch -p src"
@@ -38,19 +38,14 @@
 		"@octokit/auth-oauth-device": "^8.0.3",
 		"@octokit/rest": "^22.0.1",
 		"@octokit/types": "^16.0.0",
+		"@zokugun/cli-utils": "^0.1.0",
 		"@zokugun/fs-extra-plus": "^0.3.3",
 		"@zokugun/is-it-type": "^0.7.0",
 		"@zokugun/xtry": "^0.10.1",
-		"ansi-colors": "^4.1.3",
-		"cli-spinners": "^3.4.0",
 		"clipboardy": "^5.0.2",
-		"commander": "^14.0.3",
-		"enquirer": "^2.4.1",
 		"gray-matter": "^4.0.3",
-		"log-update": "^7.1.0",
 		"open": "^11.0.0",
 		"pacote": "^21.0.4",
-		"patch-package": "^8.0.1",
 		"playwright": "^1.58.2",
 		"tempy": "^3.1.0",
 		"untildify": "^6.0.0",
@@ -59,15 +54,20 @@
 	"devDependencies": {
 		"@commitlint/cli": "^19.7.1",
 		"@commitlint/config-conventional": "^19.7.1",
-		"@types/node": "^20.14.8",
+		"@types/node": "^22.19.11",
 		"@types/pacote": "^11.1.8",
 		"fixpack": "^4.0.0",
 		"husky": "^9.1.7",
 		"lint-staged": "^16.1.4",
-		"release-it": "^18.1.2",
+		"release-it": "^19.2.4",
 		"tsc-watch": "^7.2.0",
 		"typescript": "^5.7.3",
 		"xo": "0.60.0"
+	},
+	"overrides": {
+		"terser-webpack-plugin": {
+			"serialize-javascript": "^7.0.3"
+		}
 	},
 	"keywords": [
 		"automation",

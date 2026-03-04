@@ -1,7 +1,6 @@
+import { enquirer, logger } from '@zokugun/cli-utils';
 import { err, type Failure, ok, type Result, stringifyError } from '@zokugun/xtry';
-import enquirer from 'enquirer';
 import { type Browser, chromium, type Page } from 'playwright';
-import * as logger from './utils/logger.js';
 
 export type BrowserAction = (page: Page) => Promise<Failure<string> | undefined>;
 

@@ -1,7 +1,7 @@
+import logger from '@zokugun/cli-utils/logger';
 import { isError } from '@zokugun/is-it-type';
 import { err, stringifyError, xtry, type Failure } from '@zokugun/xtry/async';
 import { type Context, type Label } from '../types.js';
-import * as logger from '../utils/logger.js';
 
 export async function syncLabels(context: Context, labels: Label[], keepExisting = false): Promise<Failure<string> | undefined> { // {{{
 	const { octokit, owner, repositoryName } = context;
@@ -36,7 +36,7 @@ export async function syncLabels(context: Context, labels: Label[], keepExisting
 				description: label.description,
 			});
 
-			logger.log(`Created label: ${label.name}`);
+			logger.info(`Created label: ${label.name}`);
 		}
 		catch (error) {
 			if(isError(error) && 'status' in error && error.status === 422) {
@@ -53,7 +53,7 @@ export async function syncLabels(context: Context, labels: Label[], keepExisting
 					return result;
 				}
 
-				logger.log(`Updated label: ${label.name}`);
+				logger.info(`Updated label: ${label.name}`);
 			}
 			else {
 				return err(stringifyError(error));
@@ -62,7 +62,7 @@ export async function syncLabels(context: Context, labels: Label[], keepExisting
 	}
 
 	if(keepExisting) {
-		logger.log('Keeping existing labels that are not in the configuration.');
+		logger.info('Keeping existing labels that are not in the configuration.');
 		return;
 	}
 
@@ -82,7 +82,7 @@ async function deleteMissingLabels(context: Context, desiredNames: Set<string>):
 			try {
 				await octokit.rest.issues.deleteLabel({ owner, repo: repositoryName, name: existing.name });
 
-				logger.log(`Deleted label: ${existing.name}`);
+				logger.info(`Deleted label: ${existing.name}`);
 			}
 			catch (error) {
 				logger.warn(`Failed to delete label '${existing.name}': ${stringifyError(error)}`);
