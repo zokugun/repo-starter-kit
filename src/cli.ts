@@ -7,7 +7,7 @@ const program = new Command();
 program
 	.version(pkg.version, '-v, --version')
 	.description(pkg.description)
-	.requiredOption('-r, --repo <owner/name>', 'Target repository (OWNER/NAME)')
+	.option('-r, --repo <owner/name>', 'Target repository (OWNER/NAME)')
 	.option('-c, --create', 'Create the repository if it does not exist', false)
 	.option('-p, --package <name>', 'NPM package that includes a repo-starter-kit config file')
 	.option('-k, --keep', 'Do not delete missing items (labels, categories, rulesets)', false)

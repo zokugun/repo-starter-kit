@@ -80,7 +80,7 @@ export async function syncCategories(context: Context, categories: Category[], k
 		const items = await page.locator('li[data-view-component=true]').all();
 
 		for(const item of items) {
-			const header = item.locator('h2').first();
+			const header = item.locator('h3').first();
 			const title = await header.textContent();
 			if(!title) {
 				continue;
@@ -158,7 +158,7 @@ async function deleteMissings(context: PagedContext, existings: QueryNode[], des
 	}
 } // }}}
 
-async function createCategory({ page, owner, repositoryName }: PagedContext, category: Category): Promise<void> {
+async function createCategory({ page, owner, repositoryName }: PagedContext, category: Category): Promise<void> { // {{{
 	logger.info(`Creating category: ${category.name}`);
 
 	await page.goto(`https://github.com/${owner}/${repositoryName}/discussions/categories/new`, {
@@ -192,9 +192,9 @@ async function createCategory({ page, owner, repositoryName }: PagedContext, cat
 	await page.locator('button.Button--primary[type=submit]').first().click();
 
 	await page.waitForLoadState('networkidle', { timeout: 1000 }).catch(() => undefined);
-}
+} // }}}
 
-async function updateCategory({ page, owner, repositoryName }: PagedContext, category: Category, id: string): Promise<void> {
+async function updateCategory({ page, owner, repositoryName }: PagedContext, category: Category, id: string): Promise<void> { // {{{
 	logger.info(`Updating category: ${category.name}`);
 
 	await page.goto(`https://github.com/${owner}/${repositoryName}/discussions/categories/${id}/edit`, {
@@ -228,9 +228,9 @@ async function updateCategory({ page, owner, repositoryName }: PagedContext, cat
 	await page.locator('button.Button--primary[type=submit]').first().click();
 
 	await page.waitForLoadState('networkidle', { timeout: 1000 }).catch(() => undefined);
-}
+} // }}}
 
-async function deleteCategory({ page, owner, repositoryName }: PagedContext, category: QueryNode): Promise<void> {
+async function deleteCategory({ page, owner, repositoryName }: PagedContext, category: QueryNode): Promise<void> { // {{{
 	logger.info(`Deleting category: ${category.name}`);
 
 	await page.goto(`https://github.com/${owner}/${repositoryName}/discussions/categories`, {
@@ -246,4 +246,4 @@ async function deleteCategory({ page, owner, repositoryName }: PagedContext, cat
 	await form.locator('button.btn-danger').first().click();
 
 	await page.waitForLoadState('networkidle', { timeout: 1000 }).catch(() => undefined);
-}
+} // }}}

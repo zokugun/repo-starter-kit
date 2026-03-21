@@ -2,9 +2,9 @@ import { type OctokitResponse } from '@octokit/types';
 import logger from '@zokugun/cli-utils/logger';
 import { isError } from '@zokugun/is-it-type';
 import { type Result, ok, err, stringifyError } from '@zokugun/xtry';
-import { type Context, type NewRepository } from '../types.js';
+import { type ExpectedFeatures, type Context, type NewRepository } from '../types.js';
 
-export async function ensureRepo(context: Context, shouldCreate: boolean, newRepository?: NewRepository): Promise<Result<void, string>> {
+export async function ensureRepo(context: Context, shouldCreate: boolean, newRepository: NewRepository | undefined, expectedFeatures: ExpectedFeatures): Promise<Result<void, string>> {
 	const { octokit, owner, repositoryName } = context;
 
 	try {
@@ -12,12 +12,28 @@ export async function ensureRepo(context: Context, shouldCreate: boolean, newRep
 
 		context.repositoryId = response.data.node_id;
 
+		const features: { has_discussions?: boolean; has_issues?: boolean;has_projects?: boolean;has_wiki?: boolean } = {};
+
+		if(expectedFeatures.discussions) {
+			features.has_discussions = true;
+		}
+
+		if(expectedFeatures.issues) {
+			features.has_issues = true;
+		}
+
+		await octokit.rest.repos.update({
+			owner,
+			repo: repositoryName,
+			...features,
+		});
+
 		return ok();
 	}
 	catch (error) {
 		if(isError(error) && 'status' in error && error.status === 404) {
 			if(shouldCreate) {
-				return createRepository(context, newRepository);
+				return createRepository(context, newRepository, expectedFeatures);
 			}
 			else {
 				return err(`Repository ${owner}/${repositoryName} not found. Pass --create to create it automatically.`);
@@ -29,7 +45,7 @@ export async function ensureRepo(context: Context, shouldCreate: boolean, newRep
 	}
 }
 
-async function createRepository(context: Context, newRepository?: NewRepository): Promise<Result<void, string>> {
+async function createRepository(context: Context, newRepository: NewRepository | undefined, expectedFeatures: ExpectedFeatures): Promise<Result<void, string>> {
 	const { octokit, owner, repositoryName } = context;
 	const { data: viewer } = await octokit.rest.users.getAuthenticated();
 	const isUserRepo = viewer.login.toLowerCase() === owner.toLowerCase();
@@ -43,6 +59,14 @@ async function createRepository(context: Context, newRepository?: NewRepository)
 		features.has_issues = newRepository?.features.issues;
 		features.has_projects = newRepository?.features.projects;
 		features.has_wiki = newRepository?.features.wiki;
+	}
+
+	if(expectedFeatures.discussions) {
+		features.has_discussions = true;
+	}
+
+	if(expectedFeatures.issues) {
+		features.has_issues = true;
 	}
 
 	try {

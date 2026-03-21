@@ -8,7 +8,7 @@ import { normalizePackageName } from '../npms/normalize-package-name.js';
 import { splitNpmPath } from '../npms/split-npm-ath.js';
 import { joinWithinRoot } from '../paths/join-within-root.js';
 import { resolveLocalPath } from '../paths/resolve-local-path.js';
-import { type OrderItem, type Config } from '../types.js';
+import { type OrderItem, type PackageConfig } from '../types.js';
 
 const CONFIG_FILES: Array<{ name: string; type?: 'yaml' | 'json' }> = [
 	{
@@ -28,7 +28,7 @@ const CONFIG_FILES: Array<{ name: string; type?: 'yaml' | 'json' }> = [
 	},
 ];
 
-export async function loadConfig(value: string): Promise<Result<Config, string>> { // {{{
+export async function loadConfig(value: string): Promise<Result<PackageConfig, string>> { // {{{
 	let filePath = resolveLocalPath(value, { absolute: true });
 
 	if(filePath) {
@@ -63,7 +63,7 @@ export async function loadConfig(value: string): Promise<Result<Config, string>>
 	}
 } // }}}
 
-async function readConfigFromPackage(packageRoot: string, packageName: string): Promise<Result<Config, string>> { // {{{
+async function readConfigFromPackage(packageRoot: string, packageName: string): Promise<Result<PackageConfig, string>> { // {{{
 	const stat = await fse.stat(packageRoot);
 	if(stat.fails) {
 		return err(stringifyError(stat.error));
@@ -91,7 +91,7 @@ async function readConfigFromPackage(packageRoot: string, packageName: string): 
 	return err(`Package ${packageName} must include one of ${CONFIG_FILES.map(({ name }) => name).join(', ')} at its root.`);
 } // }}}
 
-async function tryReadConfigFile(filename: string, root: string, name: string, type?: 'yaml' | 'json'): Promise<YResult<Config, string, 'not-found'>> { // {{{
+async function tryReadConfigFile(filename: string, root: string, name: string, type?: 'yaml' | 'json'): Promise<YResult<PackageConfig, string, 'not-found'>> { // {{{
 	const { fails, error, value: content } = await fse.readFile(filename, 'utf8');
 
 	if(fails) {
@@ -112,7 +112,7 @@ async function tryReadConfigFile(filename: string, root: string, name: string, t
 	}
 } // }}}
 
-async function readConfigFromLocal(fileRoot: string): Promise<Result<Config, string>> { // {{{
+async function readConfigFromLocal(fileRoot: string): Promise<Result<PackageConfig, string>> { // {{{
 	const stat = await fse.stat(fileRoot);
 	if(stat.fails) {
 		return err(stringifyError(stat.error));
@@ -158,7 +158,7 @@ function parseConfigContent(content: string, type?: 'json' | 'yaml'): Result<unk
 	return result;
 } // }}}
 
-function normalizeConfig(data: unknown, root: string, source: string): Result<Config, string> { // {{{
+function normalizeConfig(data: unknown, root: string, source: string): Result<PackageConfig, string> { // {{{
 	if(!isRecord(data)) {
 		return err(`Config file ${source} must export an object.`);
 	}

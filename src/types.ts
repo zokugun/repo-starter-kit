@@ -9,21 +9,10 @@ export type Category = {
 };
 
 export type CliOptions = {
-	repo: string;
+	repo?: string;
 	create: boolean;
 	package?: string;
 	keep: boolean;
-};
-
-export type Config = {
-	root: string;
-	categories?: string;
-	discussion?: string;
-	labels?: string;
-	newRepository?: string;
-	issue?: string;
-	rulesets?: string[];
-	order?: OrderItem[];
 };
 
 export type Context = {
@@ -38,6 +27,11 @@ export type Context = {
 export type PagedContext = Context & {
 	browser: Browser;
 	page: Page;
+};
+
+export type ExpectedFeatures = {
+	discussions?: true;
+	issues?: true;
 };
 
 export type Discussion = {
@@ -65,6 +59,10 @@ export type Label = {
 	description?: string;
 };
 
+export type Migrate = {
+	labels: Record<string, string>;
+};
+
 export type NewRepository = {
 	features: {
 		discussions: boolean;
@@ -75,6 +73,22 @@ export type NewRepository = {
 };
 
 export type OrderItem = 'discussion' | 'issue';
+
+export type PackageConfig = {
+	root: string;
+	categories?: string;
+	discussion?: string;
+	labels?: string;
+	newRepository?: string;
+	issue?: string;
+	rulesets?: string[];
+	order?: OrderItem[];
+};
+
+export type ProjectConfig = {
+	file: string;
+	settings: Record<string, unknown>;
+};
 
 export type RepoReference = {
 	owner: string;

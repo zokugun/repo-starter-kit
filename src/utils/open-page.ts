@@ -1,7 +1,7 @@
 import { ok, type Result } from '@zokugun/xtry';
 import { type Page } from 'playwright';
-import { openBrowser } from '../browser.js';
 import { type Context } from '../types.js';
+import { openBrowser } from './browser.js';
 
 export async function openPage(context: Context): Promise<Result<Page, string>> {
 	if(context.page) {

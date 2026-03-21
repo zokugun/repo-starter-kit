@@ -1,9 +1,9 @@
 import logger from '@zokugun/cli-utils/logger';
-import { isError } from '@zokugun/is-it-type';
-import { err, stringifyError, xtry, type Failure } from '@zokugun/xtry/async';
+import { isString } from '@zokugun/is-it-type';
+import { stringifyError, xtry, type Failure } from '@zokugun/xtry/async';
 import { type Context, type Label } from '../types.js';
 
-export async function syncLabels(context: Context, labels: Label[], keepExisting = false): Promise<Failure<string> | undefined> { // {{{
+export async function syncLabels(context: Context, labels: Label[], migrate?: Record<string, string>, keepExisting = false): Promise<Failure<string> | undefined> { // {{{
 	const { octokit, owner, repositoryName } = context;
 
 	if(labels.length === 0) {
@@ -11,11 +11,19 @@ export async function syncLabels(context: Context, labels: Label[], keepExisting
 		return;
 	}
 
+	const newToOld: Record<string, string> = {};
+	if(migrate) {
+		for(const [oldName, newName] of Object.entries(migrate)) {
+			newToOld[newName] = oldName;
+		}
+	}
+
 	const desiredNames = new Set<string>();
 
 	for(const label of labels) {
-		const color = label.color.replace(/^#/, '').toLowerCase();
-		if(!color) {
+		label.color = label.color.replace(/^#/, '').toLowerCase();
+
+		if(!label.color) {
 			logger.warn(`Skipping label '${label.name}' because it lacks a color.`);
 			continue;
 		}
@@ -27,36 +35,73 @@ export async function syncLabels(context: Context, labels: Label[], keepExisting
 
 		desiredNames.add(label.name);
 
-		try {
-			await octokit.rest.issues.createLabel({
+		const existing = await xtry(octokit.rest.issues.getLabel({
+			owner,
+			repo: repositoryName,
+			name: label.name,
+		}), stringifyError);
+
+		let oldie = false;
+		const oldName = newToOld[label.name];
+
+		if(oldName) {
+			const result = await xtry(octokit.rest.issues.getLabel({
 				owner,
 				repo: repositoryName,
-				name: label.name,
-				color,
-				description: label.description,
-			});
+				name: oldName,
+			}), stringifyError);
 
-			logger.info(`Created label: ${label.name}`);
+			oldie = !result.fails;
 		}
-		catch (error) {
-			if(isError(error) && 'status' in error && error.status === 422) {
-				const result = await xtry(octokit.rest.issues.updateLabel({
-					owner,
-					repo: repositoryName,
-					name: label.name,
-					new_name: label.name,
-					color,
-					description: label.description,
-				}), stringifyError);
 
-				if(result.fails) {
+		if(existing.fails) {
+			if(oldie) {
+				const result = await updateLabel(oldName, label, context);
+				if(result) {
 					return result;
 				}
-
-				logger.info(`Updated label: ${label.name}`);
 			}
 			else {
-				return err(stringifyError(error));
+				const result = await createLabel(label, context);
+				if(result) {
+					return result;
+				}
+			}
+		}
+		else {
+			const result = await updateLabel(label.name, label, context);
+			if(result) {
+				return result;
+			}
+
+			if(oldie) {
+				const items = await listItemsWithLabel(oldName, context);
+				if(items.fails) {
+					return items;
+				}
+
+				for(const item of items.value) {
+					const issueNumber = item.number;
+					const currentLabelNames = item.labels.map((label) => isString(label) ? label : label.name).filter(Boolean) as string[];
+					const filtered = currentLabelNames.filter((name) => name !== oldName);
+
+					if(!filtered.includes(label.name)) {
+						filtered.push(label.name);
+					}
+
+					const result = await xtry(octokit.rest.issues.update({
+						owner,
+						repo: repositoryName,
+						issue_number: issueNumber,
+						labels: filtered,
+					}), stringifyError);
+
+					if(result.fails) {
+						return result;
+					}
+
+					logger.info(`Updated #${issueNumber}: [${currentLabelNames.join(', ')}] -> [${filtered.join(', ')}]`);
+				}
 			}
 		}
 	}
@@ -90,3 +135,48 @@ async function deleteMissingLabels(context: Context, desiredNames: Set<string>):
 		}
 	}
 } // }}}
+
+async function createLabel(label: Label, context: Context): Promise<Failure<string> | undefined> {
+	const result = await xtry(context.octokit.rest.issues.createLabel({
+		owner: context.owner,
+		repo: context.repositoryName,
+		name: label.name,
+		color: label.color,
+		description: label.description,
+	}), stringifyError);
+
+	if(result.fails) {
+		return result;
+	}
+
+	logger.info(`Created label: ${label.name}`);
+}
+
+async function updateLabel(oldName: string, label: Label, context: Context): Promise<Failure<string> | undefined> {
+	const result = await xtry(context.octokit.rest.issues.updateLabel({
+		owner: context.owner,
+		repo: context.repositoryName,
+		name: oldName,
+		new_name: label.name,
+		color: label.color,
+		description: label.description,
+	}), stringifyError);
+
+	if(result.fails) {
+		return result;
+	}
+
+	logger.info(`Updated label: ${label.name}`);
+}
+
+async function listItemsWithLabel(label: string, context: Context) {
+	const page = xtry(context.octokit.paginate(context.octokit.rest.issues.listForRepo, {
+		owner: context.owner,
+		repo: context.repositoryName,
+		labels: label,
+		state: 'all',
+		per_page: 100,
+	}), stringifyError);
+
+	return page;
+}

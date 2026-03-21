@@ -14,10 +14,10 @@ import { loadLabels } from './labels/load-labels.js';
 import { syncLabels } from './labels/sync-labels.js';
 import { ensureRepo } from './repos/ensure-repo.js';
 import { loadNewRepository } from './repos/load-new-repository.js';
-import { parseRepo } from './repos/parse-repo.js';
 import { loadRulesets } from './rulesets/load-rulesets.js';
 import { syncRulesets } from './rulesets/sync-rulesets.js';
-import { type Category, type Context, type Discussion, type NewRepository, type CliOptions, type Issue, type Label, type Ruleset, type OrderItem } from './types.js';
+import { type Category, type Context, type Discussion, type NewRepository, type CliOptions, type Issue, type Label, type Ruleset, type OrderItem, type ExpectedFeatures } from './types.js';
+import { configure } from './utils/configure.js';
 import { loadResource } from './utils/load-resource.js';
 
 type VerificationPrompt = {
@@ -29,9 +29,9 @@ export async function run(options: CliOptions): Promise<void> {
 	logger.begin();
 	logger.progress('Configuring');
 
-	const repo = parseRepo(options.repo);
-	if(repo.fails) {
-		return logger.error(repo.error);
+	const settings = await configure(options);
+	if(settings.fails) {
+		return logger.fatal(settings.error);
 	}
 
 	logger.progress('Loading');
@@ -43,60 +43,65 @@ export async function run(options: CliOptions): Promise<void> {
 	let newRepository: NewRepository | undefined;
 	let rulesets: Ruleset[] | undefined;
 	let order: OrderItem[] = ['discussion', 'issue'];
+	const expectedFeatures: ExpectedFeatures = {};
 
-	const { keep } = options;
+	const { configPath, keep, migrate, repo } = settings.value;
 
-	if(options.package) {
-		const config = await loadConfig(options.package);
+	if(configPath) {
+		const config = await loadConfig(configPath);
 		if(config.fails) {
-			return logger.error(config.error);
+			return logger.fatal(config.error);
 		}
 
 		if(config.value.categories) {
 			const result = await loadResource(config.value.categories, loadCategories, { cwd: config.value.root });
 
 			if(result.fails) {
-				return logger.error(result.error);
+				return logger.fatal(result.error);
 			}
 
 			categories = result.value;
+			expectedFeatures.discussions = true;
 		}
 
 		if(config.value.discussion) {
 			const result = await loadResource(config.value.discussion, loadDiscussion, { cwd: config.value.root });
 
 			if(result.fails) {
-				return logger.error(result.error);
+				return logger.fatal(result.error);
 			}
 
 			discussion = result.value;
+			expectedFeatures.discussions = true;
 		}
 
 		if(config.value.issue) {
 			const result = await loadResource(config.value.issue, loadIssue, { cwd: config.value.root });
 
 			if(result.fails) {
-				return logger.error(result.error);
+				return logger.fatal(result.error);
 			}
 
 			issue = result.value;
+			expectedFeatures.issues = true;
 		}
 
 		if(config.value.labels) {
 			const result = await loadResource(config.value.labels, loadLabels, { cwd: config.value.root });
 
 			if(result.fails) {
-				return logger.error(result.error);
+				return logger.fatal(result.error);
 			}
 
 			labels = result.value;
+			expectedFeatures.issues = true;
 		}
 
 		if(config.value.newRepository) {
 			const result = await loadResource(config.value.newRepository, loadNewRepository, { cwd: config.value.root });
 
 			if(result.fails) {
-				return logger.error(result.error);
+				return logger.fatal(result.error);
 			}
 
 			newRepository = result.value;
@@ -109,7 +114,7 @@ export async function run(options: CliOptions): Promise<void> {
 				const result = await loadResource(ruleset, loadRulesets, { cwd: config.value.root });
 
 				if(result.fails) {
-					return logger.error(result.error);
+					return logger.fatal(result.error);
 				}
 
 				if(result.success) {
@@ -153,19 +158,19 @@ export async function run(options: CliOptions): Promise<void> {
 			userAgent: 'repo-starter-kit',
 		});
 
-		const context: Context = { owner: repo.value.owner, repositoryName: repo.value.repo, octokit };
+		const context: Context = { owner: repo.owner, repositoryName: repo.repo, octokit };
 
-		const result = await ensureRepo(context, options.create, newRepository);
+		const result = await ensureRepo(context, options.create, newRepository, expectedFeatures);
 		if(result.fails) {
-			return logger.error(result.error);
+			return logger.fatal(result.error);
 		}
 
 		if(labels) {
 			logger.progress('Syncing labels');
 
-			const result = await syncLabels(context, labels, keep);
+			const result = await syncLabels(context, labels, migrate?.labels, keep);
 			if(result) {
-				return logger.error(result.error);
+				return logger.fatal(result.error);
 			}
 		}
 
@@ -174,7 +179,7 @@ export async function run(options: CliOptions): Promise<void> {
 
 			const result = await syncCategories(context, categories, keep);
 			if(result) {
-				return logger.error(result.error);
+				return logger.fatal(result.error);
 			}
 		}
 
@@ -184,7 +189,7 @@ export async function run(options: CliOptions): Promise<void> {
 
 				const result = await createDiscussion(context, discussion);
 				if(result) {
-					return logger.error(result.error);
+					return logger.fatal(result.error);
 				}
 			}
 			else if(resource === 'issue' && issue) {
@@ -192,7 +197,7 @@ export async function run(options: CliOptions): Promise<void> {
 
 				const result = await createIssue(context, issue);
 				if(result) {
-					return logger.error(result.error);
+					return logger.fatal(result.error);
 				}
 			}
 		}
@@ -202,7 +207,7 @@ export async function run(options: CliOptions): Promise<void> {
 
 			const result = await syncRulesets(context, rulesets, keep);
 			if(result) {
-				return logger.error(result.error);
+				return logger.fatal(result.error);
 			}
 		}
 
@@ -210,7 +215,7 @@ export async function run(options: CliOptions): Promise<void> {
 			await context.browser.close().catch(() => undefined);
 		}
 
-		logger.info(`Repository bootstrap completed for https://github.com/${repo.value.owner}/${repo.value.repo}`);
+		logger.info(`Repository bootstrap completed for https://github.com/${repo.owner}/${repo.repo}`);
 	}
 	else {
 		logger.info('Nothing to do!');
