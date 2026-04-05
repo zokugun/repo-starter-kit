@@ -155,6 +155,12 @@ export async function run(options: CliOptions): Promise<void> {
 					logger.resume();
 				},
 			},
+			log: {
+				debug: () => {},
+				info: () => {},
+				warn: () => {},
+				error: () => {},
+			},
 			userAgent: 'repo-starter-kit',
 		});
 
