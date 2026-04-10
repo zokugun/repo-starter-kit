@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.2 | 2026-04-10
+- use locked dependencies
+- use GitHub Environment to publish
+
 ## v0.4.1 | 2026-04-05
 - stop octokit rest to print into console
 
