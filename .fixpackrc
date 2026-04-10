@@ -1,4 +1,7 @@
 {
+	"required": [
+		"dependencies"
+	],
 	"sortToTop": [
 		"name",
 		"displayName",

@@ -13,7 +13,7 @@
 		"url": "git+https://github.com/zokugun/repo-starter-kit.git"
 	},
 	"bugs": {
-		"url": "https://github.com/zokugun/repo-starter-kit/issues"
+		"url": "https://github.com/zokugun/repo-starter-kit/discussions/categories/issue-triage"
 	},
 	"engines": {
 		"node": ">=18.20"
@@ -24,50 +24,56 @@
 	},
 	"main": "lib/cli.js",
 	"scripts": {
+		"audit:fix": "npm audit fix --min-release-age=0",
 		"build": "npm run clean && npm run compile:src",
+		"ci:lint": "zizmor .",
+		"ci:lint:fix": "zizmor . --fix=all",
 		"clean": "rimraf lib",
 		"compile:src": "tsc -p src",
 		"lint": "xo",
+		"lint:all": "fixpack && npm audit && npm run ci:lint && npm run lint",
 		"lint:fix": "xo --fix",
 		"prepack": "npm run build",
 		"prepare": "husky; fixpack || true",
 		"release": "release-it",
+		"update:artifacts": "artifact update",
+		"update:ci": "PINACT_MIN_AGE=7 pinact run",
+		"update:deps": "taze",
+		"watch:build": "tsc-watch -p src --onSuccess 'npm run build'",
 		"watch:src": "tsc-watch -p src"
 	},
 	"dependencies": {
-		"@octokit/auth-oauth-device": "^8.0.3",
-		"@octokit/rest": "^22.0.1",
-		"@octokit/types": "^16.0.0",
-		"@zokugun/cli-utils": "^0.2.0",
-		"@zokugun/fs-extra-plus": "^0.3.6",
-		"@zokugun/is-it-type": "^0.8.0",
-		"@zokugun/xtry": "^0.11.1",
-		"clipboardy": "^5.0.2",
-		"gray-matter": "^4.0.3",
-		"open": "^11.0.0",
-		"pacote": "^21.0.4",
-		"playwright": "^1.58.2",
-		"tempy": "^3.1.0",
-		"untildify": "^6.0.0",
-		"yaml": "^2.8.2"
+		"@octokit/auth-oauth-device": "8.0.3",
+		"@octokit/rest": "22.0.1",
+		"@octokit/types": "16.0.0",
+		"@zokugun/cli-utils": "0.2.1",
+		"@zokugun/fs-extra-plus": "0.3.7",
+		"@zokugun/is-it-type": "0.8.1",
+		"@zokugun/xtry": "0.11.4",
+		"clipboardy": "5.3.1",
+		"execa": "9.6.1",
+		"gray-matter": "4.0.3",
+		"open": "11.0.0",
+		"pacote": "21.5.0",
+		"playwright": "1.59.1",
+		"tempy": "3.2.0",
+		"trash": "10.1.1",
+		"untildify": "6.0.0",
+		"yaml": "2.8.3"
 	},
 	"devDependencies": {
-		"@commitlint/cli": "^19.7.1",
-		"@commitlint/config-conventional": "^19.7.1",
-		"@types/node": "^22.19.11",
-		"@types/pacote": "^11.1.8",
-		"fixpack": "^4.0.0",
-		"husky": "^9.1.7",
-		"lint-staged": "^16.1.4",
-		"release-it": "^19.2.4",
-		"tsc-watch": "^7.2.0",
-		"typescript": "^5.7.3",
+		"@commitlint/cli": "19.8.1",
+		"@commitlint/config-conventional": "19.8.1",
+		"@types/node": "22.19.17",
+		"@types/pacote": "11.1.8",
+		"fixpack": "4.0.0",
+		"husky": "9.1.7",
+		"lint-staged": "16.4.0",
+		"release-it": "20.0.0-1",
+		"taze": "19.11.0",
+		"tsc-watch": "7.2.0",
+		"typescript": "5.9.3",
 		"xo": "0.60.0"
-	},
-	"overrides": {
-		"terser-webpack-plugin": {
-			"serialize-javascript": "^7.0.3"
-		}
 	},
 	"keywords": [
 		"automation",
