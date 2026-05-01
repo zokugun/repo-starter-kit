@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.5.0 | 2026-01-05
+- add environments and repository' settings
+- add `only` option to sync only selected resources
+- improve rulesets normalization
+
 ## v0.4.2 | 2026-04-10
 - use locked dependencies
 - use GitHub Environment to publish
