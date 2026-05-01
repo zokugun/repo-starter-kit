@@ -1,17 +1,26 @@
 import process from 'node:process';
 import { logger } from '@zokugun/cli-utils';
-import { isBoolean, isNullable, isRecord, isString } from '@zokugun/is-it-type';
+import { isBoolean, isNonBlankString, isNullable, isRecord, isString } from '@zokugun/is-it-type';
 import { type AsyncDResult, err, ok } from '@zokugun/xtry';
 import { parseRepo } from '../repos/parse-repo.js';
-import { type CliOptions, type Migrate, type RepoReference } from '../types.js';
+import { type Settings, type CliOptions, type Migrate, type RepoReference } from '../types.js';
 import { loadPackage } from '../utils/load-package.js';
 import { loadProject } from './load-project.js';
 
-export async function configure(options: CliOptions): AsyncDResult<{ configPath?: string; keep: boolean; migrate?: Migrate; repo: RepoReference }> {
+export async function configure(options: CliOptions): AsyncDResult<Settings> {
 	let configPath: string | undefined;
 	let { keep } = options;
 	let migrate: Migrate | undefined;
 	let repo: RepoReference;
+	const resources = {
+		categories: true,
+		discussions: true,
+		environments: true,
+		issues: true,
+		labels: true,
+		rulesets: true,
+		settings: false,
+	};
 
 	if(options.repo) {
 		const result = parseRepo(options.repo);
@@ -87,10 +96,23 @@ export async function configure(options: CliOptions): AsyncDResult<{ configPath?
 		}
 	}
 
+	if(isNonBlankString<string>(options.only)) {
+		const values = options.only.split(',');
+
+		resources.categories = values.includes('category') || values.includes('c');
+		resources.discussions = values.includes('discussion') || values.includes('d');
+		resources.environments = values.includes('environment') || values.includes('e');
+		resources.issues = values.includes('issues') || values.includes('i');
+		resources.labels = values.includes('label') || values.includes('l');
+		resources.rulesets = values.includes('ruleset') || values.includes('r');
+		resources.settings = values.includes('settings') || values.includes('s');
+	}
+
 	return ok({
-		repo,
 		configPath,
 		keep,
 		migrate,
+		repo,
+		resources,
 	});
 }

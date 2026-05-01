@@ -1,16 +1,8 @@
 import logger from '@zokugun/cli-utils/logger';
 import { isNonBlankString, isRecord } from '@zokugun/is-it-type';
-import { err, stringifyError, type Failure } from '@zokugun/xtry';
+import { stringifyError, type Failure } from '@zokugun/xtry';
+import { xtry } from '@zokugun/xtry/async';
 import { type Context, type Ruleset } from '../types.js';
-
-type RulesetTarget = 'branch' | 'tag' | 'push';
-type RulesetEnforcement = 'active' | 'disabled' | 'evaluate';
-
-type RulesetPayload = Record<string, unknown> & {
-	name: string;
-	target: RulesetTarget;
-	enforcement: RulesetEnforcement;
-};
 
 export async function syncRulesets(context: Context, rulesets: Ruleset[], keepExisting = false): Promise<Failure<string> | undefined> { // {{{
 	const { octokit, owner, repositoryName } = context;
@@ -20,22 +12,18 @@ export async function syncRulesets(context: Context, rulesets: Ruleset[], keepEx
 		return;
 	}
 
-	let existingEntries: unknown[];
+	const result = await xtry(octokit.rest.repos.getRepoRulesets({
+		owner,
+		repo: repositoryName,
+	}), stringifyError);
 
-	try {
-		existingEntries = await octokit.paginate('GET /repos/{owner}/{repo}/rulesets', {
-			owner,
-			repo: repositoryName,
-			per_page: 100,
-		});
-	}
-	catch (error) {
-		return err(stringifyError(error));
+	if(result.fails) {
+		return result;
 	}
 
 	const existingByName = new Map<string, { id: number; name: string }>();
 
-	for(const entry of existingEntries) {
+	for(const entry of result.value.data) {
 		if(!isRecord(entry)) {
 			continue;
 		}
@@ -52,11 +40,11 @@ export async function syncRulesets(context: Context, rulesets: Ruleset[], keepEx
 
 	for(const desired of rulesets) {
 		desiredNames.add(desired.name);
-		const payload = normalizeRulesetPayload(desired);
+
 		const existing = existingByName.get(desired.name);
 
 		if(existing) {
-			const result = await updateRuleset(context, existing.id, payload);
+			const result = await updateRuleset(context, existing.id, desired);
 			if(result) {
 				return result;
 			}
@@ -64,7 +52,7 @@ export async function syncRulesets(context: Context, rulesets: Ruleset[], keepEx
 			logger.info(`Updated ruleset: ${desired.name}`);
 		}
 		else {
-			const result = await createRuleset(context, payload);
+			const result = await createRuleset(context, desired);
 			if(result) {
 				return result;
 			}
@@ -88,96 +76,47 @@ export async function syncRulesets(context: Context, rulesets: Ruleset[], keepEx
 	}
 } // }}}
 
-function normalizeRulesetPayload(ruleset: Ruleset): RulesetPayload { // {{{
-	/* eslint-disable @typescript-eslint/naming-convention */
-	const {
-		name,
-		id: _id,
-		source: _source,
-		source_type: _sourceType,
-		created_at: _createdAt,
-		updated_at: _updatedAt,
-		node_id: _nodeId,
-		target,
-		enforcement,
-		...rest
-	} = ruleset;
-	/* eslint-enable @typescript-eslint/naming-convention */
-
-	return {
-		...rest,
-		name,
-		target: normalizeTarget(target),
-		enforcement: normalizeEnforcement(enforcement),
-	};
-} // }}}
-
-async function createRuleset(context: Context, payload: RulesetPayload): Promise<Failure<string> | undefined> { // {{{
+async function createRuleset(context: Context, ruleset: Ruleset): Promise<Failure<string> | undefined> { // {{{
 	const { octokit, owner, repositoryName } = context;
 
-	try {
-		await octokit.request('POST /repos/{owner}/{repo}/rulesets', {
-			owner,
-			repo: repositoryName,
-			...payload,
-		});
-	}
-	catch (error) {
-		return err(`Failed to create ruleset '${payload.name}': ${stringifyError(error)}`);
+	const result = await xtry(octokit.rest.repos.createRepoRuleset({
+		owner,
+		repo: repositoryName,
+		...ruleset,
+	}), stringifyError);
+
+	if(result.fails) {
+		return result;
 	}
 } // }}}
 
-async function updateRuleset(context: Context, id: number, payload: RulesetPayload): Promise<Failure<string> | undefined> { // {{{
+async function updateRuleset(context: Context, id: number, ruleset: Ruleset): Promise<Failure<string> | undefined> { // {{{
 	const { octokit, owner, repositoryName } = context;
 
-	try {
-		await octokit.request('PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}', {
-			owner,
-			repo: repositoryName,
-			ruleset_id: id,
-			...payload,
-		});
-	}
-	catch (error) {
-		return err(`Failed to update ruleset '${payload.name}': ${stringifyError(error)}`);
+	const result = await xtry(octokit.rest.repos.updateRepoRuleset({
+		owner,
+		repo: repositoryName,
+		ruleset_id: id,
+		...ruleset,
+	}), stringifyError);
+
+	if(result.fails) {
+		return result;
 	}
 } // }}}
 
 async function deleteRuleset(context: Context, id: number, name: string): Promise<Failure<string> | undefined> { // {{{
 	const { octokit, owner, repositoryName } = context;
 
-	try {
-		await octokit.request('DELETE /repos/{owner}/{repo}/rulesets/{ruleset_id}', {
-			owner,
-			repo: repositoryName,
-			ruleset_id: id,
-		});
-	}
-	catch (error) {
-		return err(`Failed to delete ruleset '${name}': ${stringifyError(error)}`);
+	const result = await xtry(octokit.rest.repos.deleteRepoRuleset({
+		owner,
+		repo: repositoryName,
+		ruleset_id: id,
+	}), stringifyError);
+
+	if(result.fails) {
+		return result;
 	}
 
 	logger.info(`Deleted ruleset: ${name}`);
-} // }}}
-
-function normalizeTarget(value: unknown): RulesetTarget { // {{{
-	if(isNonBlankString<string>(value)) {
-		const normalized = value.trim().toLowerCase();
-		if(normalized === 'branch' || normalized === 'tag' || normalized === 'push') {
-			return normalized as RulesetTarget;
-		}
-	}
-
-	return 'branch';
-} // }}}
-
-function normalizeEnforcement(value: unknown): RulesetEnforcement { // {{{
-	if(isNonBlankString<string>(value)) {
-		const normalized = value.trim().toLowerCase();
-		if(normalized === 'active' || normalized === 'disabled' || normalized === 'evaluate') {
-			return normalized as RulesetEnforcement;
-		}
-	}
-
-	return 'active';
 } // }}}

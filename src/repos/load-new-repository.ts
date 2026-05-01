@@ -26,6 +26,7 @@ export async function loadNewRepository(filename: string): Promise<Result<NewRep
 		projects: true,
 		wiki: true,
 	};
+	let isPrivate = false;
 
 	if(isRecord(data.features)) {
 		for(const name of ['discussions', 'issues', 'projects', 'wiki']) {
@@ -35,5 +36,9 @@ export async function loadNewRepository(filename: string): Promise<Result<NewRep
 		}
 	}
 
-	return ok({ features });
+	if(isBoolean(data.private)) {
+		isPrivate = data.private;
+	}
+
+	return ok({ features, private: isPrivate });
 }

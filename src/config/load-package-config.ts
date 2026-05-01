@@ -165,9 +165,11 @@ function normalizeConfig(data: unknown, root: string, source: string): Result<Pa
 
 	const categories = isNonBlankString<string>(data.categories) ? data.categories : undefined;
 	const discussion = isNonBlankString<string>(data.discussion) ? data.discussion : undefined;
+	const environments = isNonBlankString<string>(data.environments) ? data.environments : undefined;
+	const issue = isNonBlankString<string>(data.issue) ? data.issue : undefined;
 	const labels = isNonBlankString<string>(data.labels) ? data.labels : undefined;
 	const newRepository = isNonBlankString<string>(data.newRepository) ? data.newRepository : undefined;
-	const issue = isNonBlankString<string>(data.issue) ? data.issue : undefined;
+	const settings = isNonBlankString<string>(data.settings) ? data.settings : undefined;
 
 	let rulesets: string[] | undefined;
 
@@ -188,10 +190,12 @@ function normalizeConfig(data: unknown, root: string, source: string): Result<Pa
 		root,
 		categories,
 		discussion,
+		environments,
 		issue,
 		labels,
 		newRepository,
 		rulesets,
+		settings,
 		order,
 	});
 } // }}}

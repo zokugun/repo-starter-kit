@@ -136,7 +136,7 @@ async function deleteMissingLabels(context: Context, desiredNames: Set<string>):
 	}
 } // }}}
 
-async function createLabel(label: Label, context: Context): Promise<Failure<string> | undefined> {
+async function createLabel(label: Label, context: Context): Promise<Failure<string> | undefined> { // {{{
 	const result = await xtry(context.octokit.rest.issues.createLabel({
 		owner: context.owner,
 		repo: context.repositoryName,
@@ -150,9 +150,9 @@ async function createLabel(label: Label, context: Context): Promise<Failure<stri
 	}
 
 	logger.info(`Created label: ${label.name}`);
-}
+} // }}}
 
-async function updateLabel(oldName: string, label: Label, context: Context): Promise<Failure<string> | undefined> {
+async function updateLabel(oldName: string, label: Label, context: Context): Promise<Failure<string> | undefined> { // {{{
 	const result = await xtry(context.octokit.rest.issues.updateLabel({
 		owner: context.owner,
 		repo: context.repositoryName,
@@ -167,9 +167,9 @@ async function updateLabel(oldName: string, label: Label, context: Context): Pro
 	}
 
 	logger.info(`Updated label: ${label.name}`);
-}
+} // }}}
 
-async function listItemsWithLabel(label: string, context: Context) {
+async function listItemsWithLabel(label: string, context: Context) { // {{{
 	const page = xtry(context.octokit.paginate(context.octokit.rest.issues.listForRepo, {
 		owner: context.owner,
 		repo: context.repositoryName,
@@ -179,4 +179,4 @@ async function listItemsWithLabel(label: string, context: Context) {
 	}), stringifyError);
 
 	return page;
-}
+} // }}}

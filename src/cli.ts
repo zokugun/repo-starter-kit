@@ -10,7 +10,8 @@ program
 	.option('-r, --repo <owner/name>', 'Target repository (OWNER/NAME)')
 	.option('-c, --create', 'Create the repository if it does not exist', false)
 	.option('-p, --package <name>', 'NPM package that includes a repo-starter-kit config file')
-	.option('-k, --keep', 'Do not delete missing items (labels, categories, rulesets)', false)
+	.option('-k, --keep', 'Do not delete missing resources', false)
+	.option('-o, --only <resources>', 'List of resources to only sync')
 	.action(run);
 
 program.parse();
