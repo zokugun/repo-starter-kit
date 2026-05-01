@@ -66,7 +66,7 @@ async function createRepository(context: Context, newRepository: NewRepository |
 	const { data: viewer } = await octokit.rest.users.getAuthenticated();
 	const isUserRepo = viewer.login.toLowerCase() === owner.toLowerCase();
 
-	logger.progress(`Creating repository ${owner}/${repositoryName}`);
+	logger.showProgress(`Creating repository ${owner}/${repositoryName}`);
 
 	const features: { has_discussions?: boolean; has_issues?: boolean;has_projects?: boolean;has_wiki?: boolean } = {};
 

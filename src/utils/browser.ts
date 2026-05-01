@@ -23,14 +23,14 @@ export async function openBrowser(owner: string, repositoryName: string): Promis
 
 		const signInExists = await hasSignInButton(page);
 		if(signInExists) {
-			logger.pause();
+			logger.pauseProgress();
 
 			const confirmed = await waitForEnterWithTimeout(300_000, 'GitHub Sign in detected. Please login in Chrome, then press ENTER here within 5 minutes.');
 			if(!confirmed) {
 				return err('Timed out waiting for login confirmation (5 minutes).');
 			}
 
-			logger.resume();
+			logger.resumeProgress();
 
 			const signInExists = await hasSignInButton(page);
 			if(signInExists) {

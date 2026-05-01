@@ -29,15 +29,15 @@ type VerificationPrompt = {
 };
 
 export async function run(options: CliOptions): Promise<void> {
-	logger.begin();
-	logger.progress('Configuring');
+	logger.beginTimer();
+	logger.showProgress('Configuring');
 
 	const settings = await configure(options);
 	if(settings.fails) {
 		return logger.fatal(settings.error);
 	}
 
-	logger.progress('Loading');
+	logger.showProgress('Loading');
 
 	let categories: Category[] | undefined;
 	let discussion: Discussion | undefined;
@@ -161,7 +161,7 @@ export async function run(options: CliOptions): Promise<void> {
 				clientType: 'oauth-app',
 				scopes: ['repo'],
 				async onVerification({ verification_uri, user_code }: VerificationPrompt) {
-					logger.pause();
+					logger.pauseProgress();
 
 					logger.info(`Authenticate your account at: ${verification_uri}`);
 
@@ -177,7 +177,7 @@ export async function run(options: CliOptions): Promise<void> {
 
 					logger.info(`Paste code: ${user_code} (copied to your clipboard)`);
 
-					logger.resume();
+					logger.resumeProgress();
 				},
 			},
 			log: {
@@ -197,7 +197,7 @@ export async function run(options: CliOptions): Promise<void> {
 		}
 
 		if(labels) {
-			logger.progress('Syncing labels');
+			logger.showProgress('Syncing labels');
 
 			const result = await syncLabels(context, labels, migrate?.labels, keep);
 			if(result) {
@@ -206,7 +206,7 @@ export async function run(options: CliOptions): Promise<void> {
 		}
 
 		if(categories) {
-			logger.progress('Syncing categories');
+			logger.showProgress('Syncing categories');
 
 			const result = await syncCategories(context, categories, keep);
 			if(result) {
@@ -216,7 +216,7 @@ export async function run(options: CliOptions): Promise<void> {
 
 		for(const resource of order) {
 			if(resource === 'discussion' && discussion) {
-				logger.progress('Creating discussion');
+				logger.showProgress('Creating discussion');
 
 				const result = await createDiscussion(context, discussion);
 				if(result) {
@@ -224,7 +224,7 @@ export async function run(options: CliOptions): Promise<void> {
 				}
 			}
 			else if(resource === 'issue' && issue) {
-				logger.progress('Creating issue');
+				logger.showProgress('Creating issue');
 
 				const result = await createIssue(context, issue);
 				if(result) {
@@ -234,7 +234,7 @@ export async function run(options: CliOptions): Promise<void> {
 		}
 
 		if(environments) {
-			logger.progress('Syncing environments');
+			logger.showProgress('Syncing environments');
 
 			const result = await syncEnvironments(context, environments, keep);
 			if(result) {
@@ -243,7 +243,7 @@ export async function run(options: CliOptions): Promise<void> {
 		}
 
 		if(rulesets) {
-			logger.progress('Syncing rulesets');
+			logger.showProgress('Syncing rulesets');
 
 			const result = await syncRulesets(context, rulesets, keep);
 			if(result) {
@@ -252,7 +252,7 @@ export async function run(options: CliOptions): Promise<void> {
 		}
 
 		if(context.browser) {
-			logger.progress('Closing browser');
+			logger.showProgress('Closing browser');
 
 			await context.browser.close().catch(() => undefined);
 		}
@@ -263,5 +263,5 @@ export async function run(options: CliOptions): Promise<void> {
 		logger.info('Nothing to do!');
 	}
 
-	logger.finish();
+	logger.finishTimer();
 }
