@@ -2,5 +2,12 @@
 	"force": true,
 	"includeLocked": true,
 	"maturityPeriod": 7,
-	"write": true
+	"write": true,
+	"packageMode": {
+		"@types/node": "minor",
+		"typescript": "minor"
+	},
+	"exclude": [
+		"xo"
+	]
 }
