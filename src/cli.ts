@@ -11,7 +11,7 @@ program
 	.option('-c, --create', 'Create the repository if it does not exist', false)
 	.option('-p, --package <name>', 'NPM package that includes a repo-starter-kit config file')
 	.option('-k, --keep', 'Do not delete missing resources', false)
-	.option('-o, --only <resources>', 'List of resources to only sync')
+	.option('-o, --only <resources>', 'List of resources to only sync (category,discussion,environment,issue,label,ruleset,setting)')
 	.action(run);
 
 program.parse();

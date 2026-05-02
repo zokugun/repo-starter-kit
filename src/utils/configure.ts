@@ -22,6 +22,10 @@ export async function configure(options: CliOptions): AsyncDResult<Settings> {
 		settings: false,
 	};
 
+	if(keep) {
+		logger.info(`Argument - keep: ${keep}`);
+	}
+
 	if(options.repo) {
 		const result = parseRepo(options.repo);
 		if(result.fails) {
@@ -102,10 +106,12 @@ export async function configure(options: CliOptions): AsyncDResult<Settings> {
 		resources.categories = values.includes('category') || values.includes('c');
 		resources.discussions = values.includes('discussion') || values.includes('d');
 		resources.environments = values.includes('environment') || values.includes('e');
-		resources.issues = values.includes('issues') || values.includes('i');
+		resources.issues = values.includes('issue') || values.includes('i');
 		resources.labels = values.includes('label') || values.includes('l');
 		resources.rulesets = values.includes('ruleset') || values.includes('r');
-		resources.settings = values.includes('settings') || values.includes('s');
+		resources.settings = values.includes('setting') || values.includes('s');
+
+		logger.info(`Argument - only: ${Object.entries(resources).filter(([, enabled]) => enabled).map(([name]) => name).join(', ')}`);
 	}
 
 	return ok({
