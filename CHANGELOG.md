@@ -1,6 +1,9 @@
 # Changelog
 
-## v0.5.0 | 2026-01-05
+## v0.5.1 | 2026-05-02
+- add some information logs
+
+## v0.5.0 | 2026-05-01
 - add environments and repository' settings
 - add `only` option to sync only selected resources
 - improve rulesets normalization
