@@ -138,7 +138,7 @@ export async function run(options: CliOptions): Promise<void> {
 			}
 		}
 
-		if(config.value.settings) {
+		if(config.value.settings && resources.settings) {
 			const result = await loadResource(config.value.settings, loadSettings, { cwd: config.value.root });
 
 			if(result.fails) {
@@ -153,7 +153,7 @@ export async function run(options: CliOptions): Promise<void> {
 		}
 	}
 
-	if(options.create || resources.settings || (categories ?? environments ?? discussion ?? labels ?? issue ?? rulesets)) {
+	if(options.create || (categories ?? environments ?? discussion ?? labels ?? issue ?? rulesets ?? repoSettings)) {
 		const octokit = new Octokit({
 			authStrategy: createOAuthDeviceAuth,
 			auth: {

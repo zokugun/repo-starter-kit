@@ -1,5 +1,5 @@
 import path from 'node:path';
-import untildify from 'untildify';
+import fse from '@zokugun/fs-extra-plus/async';
 import { joinWithinRoot } from './join-within-root.js';
 
 export function resolveLocalPath(value: string, { absolute, cwd }: { absolute?: boolean; cwd?: string } = {}): string | undefined {
@@ -31,7 +31,7 @@ export function resolveLocalPath(value: string, { absolute, cwd }: { absolute?: 
 
 	if(!cwd) {
 		if(value.startsWith('~')) {
-			return untildify(value);
+			return fse.untildify(value);
 		}
 		else {
 			return value;
@@ -39,7 +39,7 @@ export function resolveLocalPath(value: string, { absolute, cwd }: { absolute?: 
 	}
 
 	if(value.startsWith('~')) {
-		value = untildify(value);
+		value = fse.untildify(value);
 
 		const relative = path.relative(cwd, value);
 

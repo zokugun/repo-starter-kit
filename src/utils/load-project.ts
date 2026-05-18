@@ -1,7 +1,7 @@
 import path from 'node:path';
 import fse from '@zokugun/fs-extra-plus/async';
 import { isNonEmptyRecord } from '@zokugun/is-it-type';
-import { type AsyncDResult, type DResult, err, stringifyError, xtry, yerr, yok, type YResult } from '@zokugun/xtry';
+import { type AsyncDResult, type DResult, err, OK_NULL, stringifyError, xtry, yerr, yok, type YResult } from '@zokugun/xtry';
 import YAML from 'yaml';
 import { type ProjectConfig } from '../types.js';
 
@@ -23,7 +23,7 @@ const CONFIG_FILES: Array<{ name: string; type?: 'yaml' | 'json' }> = [
 	},
 ];
 
-export async function loadProject(root: string): AsyncDResult<ProjectConfig> {
+export async function loadProject(root: string): AsyncDResult<ProjectConfig | null> {
 	for(const { name, type } of CONFIG_FILES) {
 		const filename = path.join(root, name);
 		const result = await tryReadConfigFile(filename, root, name, type);
@@ -33,7 +33,7 @@ export async function loadProject(root: string): AsyncDResult<ProjectConfig> {
 		}
 	}
 
-	return err(`Cannot find one of ${CONFIG_FILES.map(({ name }) => name).join(', ')}`);
+	return OK_NULL;
 }
 
 async function tryReadConfigFile(filename: string, root: string, file: string, type?: 'yaml' | 'json'): Promise<YResult<ProjectConfig, string, 'not-found'>> { // {{{

@@ -14,7 +14,7 @@ export async function configure(options: CliOptions): AsyncDResult<Settings> {
 	let configPath: string | undefined;
 	let { keep } = options;
 	let migrate: Migrate | undefined;
-	let repo: RepoReference;
+	let repo: RepoReference | undefined;
 	const resources = {
 		categories: true,
 		discussions: true,
@@ -22,11 +22,73 @@ export async function configure(options: CliOptions): AsyncDResult<Settings> {
 		issues: true,
 		labels: true,
 		rulesets: true,
-		settings: false,
+		settings: true,
 	};
 
 	if(keep) {
 		logger.info(`Argument - keep: ${keep}`);
+	}
+
+	const root = process.cwd();
+
+	const project = await loadProject(root);
+	if(project.fails) {
+		return project;
+	}
+
+	if(project.value) {
+		const { file, settings } = project.value;
+
+		logger.info(`Found ${file}`);
+
+		if(isString(settings.repository)) {
+			const match = /\/\/github\.com\/([\w._-]+?)\/([\w._-]+?)(\.git)?$/.exec(settings.repository);
+
+			if(!match) {
+				return err(`Cannot detect github repository in ${project.value.file}`);
+			}
+
+			repo = {
+				owner: match[1],
+				repo: match[2],
+			};
+
+			logger.info(`Detected - owner: ${repo.owner}, repo: ${repo.repo}`);
+		}
+
+		if(isString(settings.package)) {
+			configPath = settings.package;
+
+			logger.info(`Detected - package: ${configPath}`);
+		}
+
+		if(isBoolean(settings.keep)) {
+			keep = settings.keep;
+
+			logger.info(`Detected - keep: ${keep}`);
+		}
+
+		if(isRecord(settings.migrate)) {
+			const labels = isRecord<string>(settings.migrate.labels, (_key, value) => isString(value)) ? settings.migrate.labels : {};
+
+			migrate = {
+				labels,
+			};
+		}
+
+		if(isArray(settings.resources, (value) => isString(value) && RESOURCES.includes(value))) {
+			const values = settings.resources as string[];
+
+			logger.info(`Detected - resources: ${values.join(',')}`);
+
+			resources.categories = values.includes('category');
+			resources.discussions = values.includes('discussion');
+			resources.environments = values.includes('environment');
+			resources.issues = values.includes('issue');
+			resources.labels = values.includes('label');
+			resources.rulesets = values.includes('ruleset');
+			resources.settings = values.includes('setting');
+		}
 	}
 
 	if(options.repo) {
@@ -41,9 +103,7 @@ export async function configure(options: CliOptions): AsyncDResult<Settings> {
 			configPath = options.package;
 		}
 	}
-	else {
-		const root = process.cwd();
-
+	else if(!repo) {
 		const packageResult = await loadPackage(root);
 		if(packageResult.fails) {
 			return packageResult;
@@ -70,50 +130,14 @@ export async function configure(options: CliOptions): AsyncDResult<Settings> {
 		};
 
 		logger.info(`Detected - owner: ${repo.owner}, repo: ${repo.repo}`);
+	}
 
-		const project = await loadProject(root);
-		if(project.fails) {
-			return project;
+	if(!configPath) {
+		if(project.value) {
+			return err(`Cannot find the "package" property in ${project.value.file}`);
 		}
-
-		const { file, settings } = project.value;
-
-		logger.info(`Found ${file}`);
-
-		if(!isString(settings.package)) {
-			return err(`Cannot find the "package" property in ${file}`);
-		}
-
-		configPath = settings.package;
-
-		logger.info(`Detected - package: ${configPath}`);
-
-		if(isBoolean(settings.keep)) {
-			keep = settings.keep;
-		}
-
-		logger.info(`Detected - keep: ${keep}`);
-
-		if(isRecord(settings.migrate)) {
-			const labels = isRecord<string>(settings.migrate.labels, (_key, value) => isString(value)) ? settings.migrate.labels : {};
-
-			migrate = {
-				labels,
-			};
-		}
-
-		if(isArray(settings.resources, (value) => isString(value) && RESOURCES.includes(value))) {
-			const values = settings.resources as string[];
-
-			logger.info(`Detected - resources: ${values.join(',')}`);
-
-			resources.categories = values.includes('category');
-			resources.discussions = values.includes('discussion');
-			resources.environments = values.includes('environment');
-			resources.issues = values.includes('issue');
-			resources.labels = values.includes('label');
-			resources.rulesets = values.includes('ruleset');
-			resources.settings = values.includes('setting');
+		else {
+			return err('Cannot find the "package" option');
 		}
 	}
 
