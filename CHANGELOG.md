@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.6.1 | 2026-05-19
+- project file and settings are optionals
+
 ## v0.6.0 | 2026-05-18
 - a project can limit sync to only selected resources
 
