@@ -1,11 +1,14 @@
 import process from 'node:process';
 import { logger } from '@zokugun/cli-utils';
-import { isBoolean, isNonBlankString, isNullable, isRecord, isString } from '@zokugun/is-it-type';
+import { isArray, isBoolean, isNonBlankString, isNullable, isRecord, isString } from '@zokugun/is-it-type';
 import { type AsyncDResult, err, ok } from '@zokugun/xtry';
 import { parseRepo } from '../repos/parse-repo.js';
 import { type Settings, type CliOptions, type Migrate, type RepoReference } from '../types.js';
 import { loadPackage } from '../utils/load-package.js';
 import { loadProject } from './load-project.js';
+
+// eslint-disable-next-line unicorn/prefer-set-has
+const RESOURCES = ['category', 'discussion', 'environment', 'issue', 'label', 'ruleset', 'setting'];
 
 export async function configure(options: CliOptions): AsyncDResult<Settings> {
 	let configPath: string | undefined;
@@ -97,6 +100,20 @@ export async function configure(options: CliOptions): AsyncDResult<Settings> {
 			migrate = {
 				labels,
 			};
+		}
+
+		if(isArray(settings.resources, (value) => isString(value) && RESOURCES.includes(value))) {
+			const values = settings.resources as string[];
+
+			logger.info(`Detected - resources: ${values.join(',')}`);
+
+			resources.categories = values.includes('category');
+			resources.discussions = values.includes('discussion');
+			resources.environments = values.includes('environment');
+			resources.issues = values.includes('issue');
+			resources.labels = values.includes('label');
+			resources.rulesets = values.includes('ruleset');
+			resources.settings = values.includes('setting');
 		}
 	}
 
