@@ -1,8 +1,8 @@
-[@zokugun/repo-starter-kit](https://github.com/zokugun/repo-starter-kit)
+[repo-starter-kit](https://github.com/zokugun/repo-starter-kit)
 ========================================================================
 
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![NPM Version](https://img.shields.io/npm/v/@zokugun/repo-starter-kit.svg?colorB=green)](https://www.npmjs.com/package/@zokugun/repo-starter-kit)
+[![NPM Version](https://img.shields.io/npm/v/repo-starter-kit.svg?colorB=green)](https://www.npmjs.com/package/repo-starter-kit)
 [![Donation](https://img.shields.io/badge/donate-ko--fi-green)](https://ko-fi.com/daiyam)
 [![Donation](https://img.shields.io/badge/donate-liberapay-green)](https://liberapay.com/daiyam/donate)
 [![Donation](https://img.shields.io/badge/donate-paypal-green)](https://paypal.me/daiyam99)
@@ -22,13 +22,13 @@ Quick start
 Install globally with npm:
 
 ```bash
-npm install -g @zokugun/repo-starter-kit
+npm install -g repo-starter-kit
 ```
 
 Or run directly with npx:
 
 ```bash
-npx @zokugun/repo-starter-kit --repo owner/name --package @your/package
+npx repo-starter-kit --repo owner/name --package @your/package
 ```
 
 Usage
@@ -112,7 +112,7 @@ Examples
 The `examples/` directory in this repository contains ready-to-use folders showing how to bundle labels, issues, and branch rulesets. Use them directly:
 
 ```bash
-npx @zokugun/repo-starter-kit --repo <owner/name> --package ./examples/basic/
+npx repo-starter-kit --repo <owner/name> --package ./examples/basic/
 ```
 
 or publish one of the folders as an npm package (each folder already includes a `repo-starter-kit.yml` manifest) so you can pass `--package @scope/name`.

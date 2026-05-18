@@ -9,7 +9,7 @@ The files in this directory show how to structure reusable starter kits before p
 Run it locally against a sandbox repository:
 
 ```bash
-npx @zokugun/repo-starter-kit \
+npx repo-starter-kit \
   --repo <owner/name> \
   --package ./examples/basic
 ```
@@ -21,7 +21,7 @@ If you want to publish this folder as `@yourscope/repo-starter-kit-basic`, keep 
 `examples/rulesets-only` demonstrates protecting release branches and enforcing signed tags without touching labels or issue templates.
 
 ```bash
-npx @zokugun/repo-starter-kit \
+npx repo-starter-kit \
   --repo <owner/name> \
   --rulesets ./examples/rulesets-only/rulesets.yml
 ```
