@@ -1,49 +1,52 @@
 import { type OctokitResponse } from '@octokit/types';
 import logger from '@zokugun/cli-utils/logger';
 import { isEmptyRecord, isError, isNumber, isUndefined } from '@zokugun/is-it-type';
-import { ok, err, stringifyError, type AsyncDResult } from '@zokugun/xtry';
+import { err, stringifyError, type AsyncDResult, OK_UNDEFINED } from '@zokugun/xtry';
 import { xtry } from '@zokugun/xtry/async';
 import { type ExpectedFeatures, type Context, type NewRepository, type RepositorySettings } from '../types.js';
 import { openPage } from '../utils/open-page.js';
 
+type Features = {
+	has_discussions?: boolean;
+	has_issues?: boolean;
+	has_projects?: boolean;
+	has_wiki?: boolean;
+};
+type Permissions = {
+	admin: boolean;
+	maintain?: boolean;
+	push: boolean;
+	triage?: boolean;
+	pull: boolean;
+};
+
 export async function ensureRepo(context: Context, shouldCreate: boolean, newRepository: NewRepository | undefined, expectedFeatures: ExpectedFeatures, settings?: RepositorySettings): AsyncDResult { // {{{
 	const { octokit, owner, repositoryName } = context;
+
+	let currentFeatures: Features | undefined;
+	let permissions: Permissions | undefined;
 
 	try {
 		const response = await octokit.rest.repos.get({ owner, repo: repositoryName });
 
 		context.repositoryId = response.data.node_id;
 
-		const features: { has_discussions?: boolean; has_issues?: boolean; has_projects?: boolean; has_wiki?: boolean } = {};
+		currentFeatures = {
+			has_discussions: response.data.has_discussions,
+			has_issues: response.data.has_issues,
+			has_projects: response.data.has_projects,
+			has_wiki: response.data.has_wiki,
+		};
 
-		if(expectedFeatures.discussions) {
-			features.has_discussions = true;
-		}
-
-		if(expectedFeatures.issues) {
-			features.has_issues = true;
-		}
-
-		if(isEmptyRecord(features)) {
-			if(settings) {
-				return updateSettings(context, settings);
-			}
-
-			return ok();
-		}
-
-		await octokit.rest.repos.update({
-			owner,
-			repo: repositoryName,
-			...features,
-		});
-
-		logger.info('Updated repository');
+		permissions = response.data.permissions;
 	}
 	catch (error) {
 		if(isError(error) && 'status' in error && error.status === 404) {
 			if(shouldCreate) {
-				return createRepository(context, newRepository, expectedFeatures);
+				const result = await createRepository(context, newRepository, expectedFeatures);
+				if(result.fails) {
+					return result;
+				}
 			}
 			else {
 				return err(`Repository ${owner}/${repositoryName} not found. Pass --create to create it automatically.`);
@@ -54,11 +57,21 @@ export async function ensureRepo(context: Context, shouldCreate: boolean, newRep
 		}
 	}
 
-	if(settings) {
-		return updateSettings(context, settings);
+	if(newRepository && currentFeatures && permissions) {
+		const result = await updateFeatures(context, currentFeatures, expectedFeatures, permissions);
+		if(result.fails) {
+			return result;
+		}
 	}
 
-	return ok();
+	if(settings) {
+		const result = await updateSettings(context, settings);
+		if(result.fails) {
+			return result;
+		}
+	}
+
+	return OK_UNDEFINED;
 } // }}}
 
 async function createRepository(context: Context, newRepository: NewRepository | undefined, expectedFeatures: ExpectedFeatures): AsyncDResult { // {{{
@@ -108,13 +121,49 @@ async function createRepository(context: Context, newRepository: NewRepository |
 
 		logger.info(`Created repository ${owner}/${repositoryName}`);
 
-		return ok();
+		return OK_UNDEFINED;
 	}
 	catch (error) {
 		const message = stringifyError(error);
 
 		return err(`Failed to create repository ${owner}/${repositoryName}: ${message}`);
 	}
+} // }}}
+
+async function updateFeatures(context: Context, currentFeatures: Features, expectedFeatures: ExpectedFeatures, permissions: Permissions): AsyncDResult { // {{{
+	const { octokit, owner, repositoryName } = context;
+
+	const features: Features = {};
+
+	if(expectedFeatures.discussions && !currentFeatures.has_discussions) {
+		features.has_discussions = true;
+	}
+
+	if(expectedFeatures.issues && !currentFeatures.has_issues) {
+		features.has_issues = true;
+	}
+
+	if(isEmptyRecord(features)) {
+		return OK_UNDEFINED;
+	}
+
+	if(!permissions.admin && !permissions.maintain) {
+		return err('The repository needs some features but the user can\'t update them.');
+	}
+
+	const result = await xtry(octokit.rest.repos.update({
+		owner,
+		repo: repositoryName,
+		...features,
+	}), stringifyError);
+
+	if(result.fails) {
+		return result;
+	}
+
+	logger.info('Updated features');
+
+	return OK_UNDEFINED;
 } // }}}
 
 async function updateSettings(context: Context, settings: RepositorySettings): AsyncDResult { // {{{
@@ -288,5 +337,5 @@ async function updateSettings(context: Context, settings: RepositorySettings): A
 
 	logger.info('Updated settings');
 
-	return ok();
+	return OK_UNDEFINED;
 } // }}}

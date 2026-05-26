@@ -8,7 +8,7 @@ import { loadPackage } from '../utils/load-package.js';
 import { loadProject } from './load-project.js';
 
 // eslint-disable-next-line unicorn/prefer-set-has
-const RESOURCES = ['category', 'discussion', 'environment', 'issue', 'label', 'ruleset', 'setting'];
+const RESOURCES = ['categories', 'discussions', 'environments', 'issues', 'labels', 'rulesets', 'settings'];
 
 export async function configure(options: CliOptions): AsyncDResult<Settings> {
 	let configPath: string | undefined;
@@ -81,13 +81,13 @@ export async function configure(options: CliOptions): AsyncDResult<Settings> {
 
 			logger.info(`Detected - resources: ${values.join(',')}`);
 
-			resources.categories = values.includes('category');
-			resources.discussions = values.includes('discussion');
-			resources.environments = values.includes('environment');
-			resources.issues = values.includes('issue');
-			resources.labels = values.includes('label');
-			resources.rulesets = values.includes('ruleset');
-			resources.settings = values.includes('setting');
+			resources.categories = values.includes('categories');
+			resources.discussions = values.includes('discussions');
+			resources.environments = values.includes('environments');
+			resources.issues = values.includes('issues');
+			resources.labels = values.includes('labels');
+			resources.rulesets = values.includes('rulesets');
+			resources.settings = values.includes('settings');
 		}
 	}
 
@@ -144,13 +144,13 @@ export async function configure(options: CliOptions): AsyncDResult<Settings> {
 	if(isNonBlankString<string>(options.only)) {
 		const values = options.only.split(',');
 
-		resources.categories = values.includes('category') || values.includes('c');
-		resources.discussions = values.includes('discussion') || values.includes('d');
-		resources.environments = values.includes('environment') || values.includes('e');
-		resources.issues = values.includes('issue') || values.includes('i');
-		resources.labels = values.includes('label') || values.includes('l');
-		resources.rulesets = values.includes('ruleset') || values.includes('r');
-		resources.settings = values.includes('setting') || values.includes('s');
+		resources.categories = values.includes('categories') || values.includes('c');
+		resources.discussions = values.includes('discussions') || values.includes('d');
+		resources.environments = values.includes('environments') || values.includes('e');
+		resources.issues = values.includes('issues') || values.includes('i');
+		resources.labels = values.includes('labels') || values.includes('l');
+		resources.rulesets = values.includes('rulesets') || values.includes('r');
+		resources.settings = values.includes('settings') || values.includes('s');
 
 		logger.info(`Argument - only: ${Object.entries(resources).filter(([, enabled]) => enabled).map(([name]) => name).join(', ')}`);
 	}
