@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6.2 | 2026-05-27
+- update project only when needed
+- rename resources, now it uses the plural form
+
 ## v0.6.1 | 2026-05-19
 - project file and settings are optionals
 
