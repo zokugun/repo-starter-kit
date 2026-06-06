@@ -1,8 +1,8 @@
 import process from 'node:process';
+import fse from '@zokugun/fs-extra-plus/async';
 import { isNonEmptyString } from '@zokugun/is-it-type';
 import { err, ok, stringifyError, type Result } from '@zokugun/xtry';
 import pacote from 'pacote';
-import { temporaryDirectory } from 'tempy';
 
 const DEFAULT_REGISTRY = 'https://registry.npmjs.org';
 const $cache: Record<string, string> = {};
@@ -12,10 +12,13 @@ export async function downloadPackage(packageName: string): Promise<Result<strin
 		return ok($cache[packageName]);
 	}
 
-	const dir = temporaryDirectory();
+	const dir = await fse.makeTempDir();
+	if(dir.fails) {
+		return err(stringifyError(dir.error));
+	}
 
 	try {
-		const result = await pacote.extract(packageName, dir, { registry: resolveRegistry() });
+		const result = await pacote.extract(packageName, dir.value, { registry: resolveRegistry() });
 
 		if(!result.resolved) {
 			return err(result.from);
@@ -25,9 +28,9 @@ export async function downloadPackage(packageName: string): Promise<Result<strin
 		return err(stringifyError(error));
 	}
 
-	$cache[packageName] = dir;
+	$cache[packageName] = dir.value;
 
-	return ok(dir);
+	return ok(dir.value);
 }
 
 function resolveRegistry(): string {
