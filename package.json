@@ -52,13 +52,11 @@
 		"@zokugun/is-it-type": "0.8.1",
 		"@zokugun/xtry": "0.11.6",
 		"clipboardy": "5.3.1",
-		"execa": "9.6.1",
 		"gray-matter": "4.0.3",
 		"open": "11.0.0",
 		"pacote": "21.5.0",
 		"playwright": "1.60.0",
 		"tempy": "3.2.0",
-		"trash": "10.1.1",
 		"yaml": "2.9.0"
 	},
 	"devDependencies": {
@@ -79,6 +77,9 @@
 	"overrides": {
 		"ajv": {
 			"fast-uri": "3.1.2"
+		},
+		"@inquirer/core": {
+			"mute-stream": "3.0.0"
 		}
 	},
 	"keywords": [

@@ -1,6 +1,9 @@
 {
 	"exclude": [
-		"xo"
+		"xo",
+		"commitlint/cli",
+		"@commitlint/config-conventional",
+		"lint-staged"
 	],
 	"force": true,
 	"includeLocked": true,
