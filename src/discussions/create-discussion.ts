@@ -1,20 +1,10 @@
 import logger from '@zokugun/cli-utils/logger';
-import { err, type Failure, stringifyError } from '@zokugun/xtry';
+import { type AsyncDResult, err, OK, stringifyError } from '@zokugun/xtry/async';
+import { getCategoryId } from '../categories/get-category-id.js';
 import { type Context, type Discussion } from '../types.js';
-import { openPage } from '../utils/open-page.js';
-
-type CategoriesResponse = {
-	repository: {
-		discussionCategories: {
-			edges: [{
-				node: {
-					id: string;
-					name: string;
-				};
-			}];
-		};
-	};
-};
+import { closeDiscussion } from './close-discussion.js';
+import { lockDiscussion } from './lock-discussion.js';
+import { pinDiscussion } from './pin-discussion.js';
 
 type CreateResponse = {
 	createDiscussion: {
@@ -25,48 +15,19 @@ type CreateResponse = {
 	};
 };
 
-export async function createDiscussion(context: Context, { title, body, category, labels, close, pin, lock }: Discussion): Promise<Failure<string> | undefined> {
+export async function createDiscussion(context: Context, { title, body, category, labels, close, pin, lock }: Discussion): AsyncDResult {
 	const { octokit, owner, repositoryName, repositoryId } = context;
 
+	logger.info(`Creating discussion '${title}'`);
+
+	const categoryResult = await getCategoryId(context, category);
+	if(categoryResult.fails) {
+		return categoryResult;
+	}
+
+	const categoryId = categoryResult.value;
+
 	try {
-		logger.info(`Creating discussion '${title}'`);
-
-		const categories: CategoriesResponse = await octokit.graphql(
-			`query listCategories($owner: String!, $name: String!) {
-				repository(owner: $owner, name: $name) {
-					discussionCategories(first: 25) {
-						totalCount
-
-						pageInfo {
-							startCursor
-							endCursor
-							hasNextPage
-							hasPreviousPage
-						}
-
-						edges {
-							cursor
-
-							node {
-								id
-								name
-							}
-						}
-					}
-				}
-			}`,
-			{
-				owner,
-				name: repositoryName,
-			},
-		);
-
-		const categoryId = categories.repository.discussionCategories.edges.filter(({ node }) => node.name === category).map(({ node }) => node.id)[0];
-
-		if(!categoryId) {
-			return err(`Cannot find category "${category}"`);
-		}
-
 		const response: CreateResponse = await octokit.graphql(
 			`mutation createDiscussion($repositoryId: ID!, $categoryId: ID!, $title: String!, $body: String!) {
 				createDiscussion(input: {repositoryId: $repositoryId, categoryId: $categoryId, title: $title, body: $body}) {
@@ -123,69 +84,29 @@ export async function createDiscussion(context: Context, { title, body, category
 		}
 
 		if(close) {
-			logger.info(`Closing discussion '${title}'`);
-
-			const reason = close === 'resolved' ? 'RESOLVED' : 'OUTDATED';
-
-			await octokit.graphql(
-				`mutation closeDiscussion($discussionId: ID!, $reason: DiscussionCloseReason!) {
-					closeDiscussion(input: {discussionId: $discussionId, reason: $reason}) {
-						discussion {
-							id
-							closed
-						}
-					}
-				}`,
-				{
-					discussionId,
-					reason,
-				},
-			);
+			const result = await closeDiscussion(context, discussionId, title, close);
+			if(result.fails) {
+				return result;
+			}
 		}
 
 		if(lock) {
-			logger.info(`Locking discussion '${title}'`);
-
-			await octokit.graphql(
-				`mutation lockDiscussion($discussionId: ID!) {
-					lockLockable(input: {lockableId: $discussionId}) {
-						lockedRecord {
-							locked
-						}
-					}
-				}`,
-				{
-					discussionId,
-				},
-			);
+			const result = await lockDiscussion(context, discussionId, title);
+			if(result.fails) {
+				return result;
+			}
 		}
 
 		if(pin) {
-			logger.info(`Pinning discussion '${title}'`);
-
-			const openResult = await openPage(context);
-			if(openResult.fails) {
-				return openResult;
+			const result = await pinDiscussion(context, discussionNumber, title);
+			if(result.fails) {
+				return result;
 			}
-
-			const page = openResult.value;
-
-			await page.goto(`https://github.com/${owner}/${repositoryName}/discussions/${discussionNumber}`, {
-				waitUntil: 'domcontentloaded',
-			});
-
-			await page.waitForLoadState('networkidle', { timeout: 1000 }).catch(() => undefined);
-
-			await page.locator('#dialog-show-discussion-create-spotlight').first().click();
-
-			await page.locator('#discussion_spotlight_preconfigured_color_green').first().check();
-
-			await page.locator('button.Button--primary[type=submit]').getByText('Pin discussion').first().click();
-
-			await page.waitForLoadState('networkidle', { timeout: 1000 }).catch(() => undefined);
 		}
 
 		logger.info(`Created discussion '${title}' (#${discussionNumber}).`);
+
+		return OK;
 	}
 	catch (error) {
 		return err(stringifyError(error));

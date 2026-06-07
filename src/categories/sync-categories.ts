@@ -144,7 +144,6 @@ export async function syncCategories(context: Context, categories: Category[], k
 	}
 	catch (error) {
 		logger.error(stringifyError(error));
-		console.log(error);
 
 		return err(stringifyError(error));
 	}

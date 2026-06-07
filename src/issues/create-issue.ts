@@ -1,84 +1,50 @@
 import logger from '@zokugun/cli-utils/logger';
-import { err, type Failure, stringifyError } from '@zokugun/xtry';
+import { type AsyncDResult, OK, stringifyError, xtry } from '@zokugun/xtry/async';
 import { type Context, type Issue } from '../types.js';
+import { closeIssue } from './close-issue.js';
+import { lockIssue } from './lock-issue.js';
+import { pinIssue } from './pin-issue.js';
 
-export async function createIssue(context: Context, { title, body, labels, close, pin, lock }: Issue): Promise<Failure<string> | undefined> {
+export async function createIssue(context: Context, { title, body, labels, close, pin, lock }: Issue): AsyncDResult {
 	const { octokit, owner, repositoryName } = context;
 
-	try {
-		const response = await octokit.rest.issues.create({
-			owner,
-			repo: repositoryName,
-			title,
-			body,
-			labels,
-		});
+	const result = await xtry(octokit.rest.issues.create({
+		owner,
+		repo: repositoryName,
+		title,
+		body,
+		labels,
+	}), stringifyError);
 
-		const issueNumber = response.data.number;
-		const issueId = response.data.node_id;
-
-		if(close) {
-			logger.info(`Closing issue '${title}'`);
-
-			const reason = close === 'completed' ? 'COMPLETED' : 'NOT_PLANNED';
-
-			await octokit.graphql(
-				`mutation closeIssue($issueId: ID!, $reason: IssueClosedStateReason!) {
-					closeIssue(input: {issueId: $issueId, stateReason: $reason}) {
-						issue {
-							id
-							closed
-							closedAt
-							state
-							stateReason
-						}
-					}
-				}`,
-				{
-					issueId,
-					reason,
-				},
-			);
-		}
-
-		if(pin) {
-			logger.info(`Pinning issue '${title}'`);
-
-			await octokit.graphql(
-				`mutation pinIssue($issueId: ID!) {
-					pinIssue(input: {issueId: $issueId}) {
-						issue {
-							id
-							isPinned
-						}
-					}
-				}`,
-				{
-					issueId,
-				},
-			);
-		}
-
-		if(lock) {
-			logger.info(`Locking issue '${title}'`);
-
-			await octokit.graphql(
-				`mutation lockIssue($issueId: ID!) {
-					lockLockable(input: {lockableId: $issueId, lockReason: RESOLVED}) {
-						lockedRecord {
-							locked
-						}
-					}
-				}`,
-				{
-					issueId,
-				},
-			);
-		}
-
-		logger.info(`Created issue '${title}' (#${issueNumber}).`);
+	if(result.fails) {
+		return result;
 	}
-	catch (error) {
-		return err(stringifyError(error));
+
+	const issueNumber = result.value.data.number;
+	const issueId = result.value.data.node_id;
+
+	if(close) {
+		const result = await closeIssue(context, issueId, title, close);
+		if(result.fails) {
+			return result;
+		}
 	}
+
+	if(lock) {
+		const result = await lockIssue(context, issueId, title);
+		if(result.fails) {
+			return result;
+		}
+	}
+
+	if(pin) {
+		const result = await pinIssue(context, issueId, title);
+		if(result.fails) {
+			return result;
+		}
+	}
+
+	logger.info(`Created issue '${title}' (#${issueNumber}).`);
+
+	return OK;
 }

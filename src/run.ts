@@ -6,12 +6,12 @@ import open from 'open';
 import { loadCategories } from './categories/load-categories.js';
 import { syncCategories } from './categories/sync-categories.js';
 import { loadConfig } from './config/load-package-config.js';
-import { createDiscussion } from './discussions/create-discussion.js';
 import { loadDiscussion } from './discussions/load-discussion.js';
+import { syncDiscussion } from './discussions/sync-discussion.js';
 import { loadEnvironments } from './environments/load-environments.js';
 import { syncEnvironments } from './environments/sync-environments.js';
-import { createIssue } from './issues/create-issue.js';
 import { loadIssue } from './issues/load-issue.js';
+import { syncIssue } from './issues/sync-issue.js';
 import { loadLabels } from './labels/load-labels.js';
 import { syncLabels } from './labels/sync-labels.js';
 import { ensureRepo } from './repos/ensure-repo.js';
@@ -216,18 +216,14 @@ export async function run(options: CliOptions): Promise<void> {
 
 		for(const resource of order) {
 			if(resource === 'discussion' && discussion) {
-				logger.showProgress('Creating discussion');
-
-				const result = await createDiscussion(context, discussion);
-				if(result) {
+				const result = await syncDiscussion(context, discussion);
+				if(result.fails) {
 					return logger.fatal(result.error);
 				}
 			}
 			else if(resource === 'issue' && issue) {
-				logger.showProgress('Creating issue');
-
-				const result = await createIssue(context, issue);
-				if(result) {
+				const result = await syncIssue(context, issue);
+				if(result.fails) {
 					return logger.fatal(result.error);
 				}
 			}
