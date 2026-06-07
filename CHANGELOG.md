@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.7.1 | 2026-06-07
+- if initial issue or discussion are detected (based on title), don't recreate them
+
 ## v0.7.0 | 2026-06-07
 - project can add custom categories and labels
 
