@@ -2,8 +2,10 @@ import process from 'node:process';
 import { logger } from '@zokugun/cli-utils';
 import { isArray, isBoolean, isNonBlankString, isNullable, isRecord, isString } from '@zokugun/is-it-type';
 import { type AsyncDResult, err, ok } from '@zokugun/xtry';
+import { normalizeCategories } from '../categories/normalize-categories.js';
+import { normalizeLabels } from '../labels/normalize-labels.js';
 import { parseRepo } from '../repos/parse-repo.js';
-import { type Settings, type CliOptions, type Migrate, type RepoReference } from '../types.js';
+import { type Settings, type CliOptions, type RepoReference } from '../types.js';
 import { loadPackage } from '../utils/load-package.js';
 import { loadProject } from './load-project.js';
 
@@ -13,7 +15,7 @@ const RESOURCES = ['categories', 'discussions', 'environments', 'issues', 'label
 export async function configure(options: CliOptions): AsyncDResult<Settings> {
 	let configPath: string | undefined;
 	let { keep } = options;
-	let migrate: Migrate | undefined;
+	let migrate: Settings['migrate'];
 	let repo: RepoReference | undefined;
 	const resources = {
 		categories: true,
@@ -23,6 +25,10 @@ export async function configure(options: CliOptions): AsyncDResult<Settings> {
 		labels: true,
 		rulesets: true,
 		settings: true,
+	};
+	const extend: Settings['extend'] = {
+		categories: [],
+		labels: [],
 	};
 
 	if(keep) {
@@ -68,14 +74,6 @@ export async function configure(options: CliOptions): AsyncDResult<Settings> {
 			logger.info(`Detected - keep: ${keep}`);
 		}
 
-		if(isRecord(settings.migrate)) {
-			const labels = isRecord<string>(settings.migrate.labels, (_key, value) => isString(value)) ? settings.migrate.labels : {};
-
-			migrate = {
-				labels,
-			};
-		}
-
 		if(isArray(settings.resources, (value) => isString(value) && RESOURCES.includes(value))) {
 			const values = settings.resources as string[];
 
@@ -88,6 +86,34 @@ export async function configure(options: CliOptions): AsyncDResult<Settings> {
 			resources.labels = values.includes('labels');
 			resources.rulesets = values.includes('rulesets');
 			resources.settings = values.includes('settings');
+		}
+
+		if(isRecord(settings.migrate)) {
+			const labels = resources.labels && isRecord<string>(settings.migrate.labels, (_key, value) => isString(value)) ? settings.migrate.labels : {};
+
+			migrate = {
+				labels,
+			};
+		}
+
+		if(isRecord(settings.extend)) {
+			if(resources.categories && isArray(settings.extend.categories)) {
+				const result = normalizeCategories(settings.extend.categories);
+				if(result.fails) {
+					return result;
+				}
+
+				extend.categories = result.value;
+			}
+
+			if(resources.labels && isArray(settings.extend.labels)) {
+				const result = normalizeLabels(settings.extend.labels);
+				if(result.fails) {
+					return result;
+				}
+
+				extend.labels = result.value;
+			}
 		}
 	}
 
@@ -157,6 +183,7 @@ export async function configure(options: CliOptions): AsyncDResult<Settings> {
 
 	return ok({
 		configPath,
+		extend,
 		keep,
 		migrate,
 		repo,

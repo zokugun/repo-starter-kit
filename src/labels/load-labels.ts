@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
-import { isRecord } from '@zokugun/is-it-type';
-import { err, ok, stringifyError, type Result } from '@zokugun/xtry';
+import { err, stringifyError, type Result } from '@zokugun/xtry';
 import YAML from 'yaml';
 import { type Label } from '../types.js';
+import { normalizeLabels } from './normalize-labels.js';
 
 export async function loadLabels(filename: string): Promise<Result<Label[], string>> {
 	let content: string;
@@ -20,23 +20,5 @@ export async function loadLabels(filename: string): Promise<Result<Label[], stri
 		return err(`Label file ${filename} must contain an array.`);
 	}
 
-	const labels: Label[] = [];
-
-	for(const [index, record] of records.entries()) {
-		if(!isRecord(record)) {
-			return err(`Label entry at index ${index} must be an object.`);
-		}
-
-		const name = String(record.name ?? '').trim();
-		const color = String(record.color ?? '').trim();
-		const description = String(record.description ?? '').trim();
-
-		if(name.length === 0) {
-			return err(`Label entry at index ${index} must define a non-empty 'name'.`);
-		}
-
-		labels.push({ name, color, description });
-	}
-
-	return ok(labels);
+	return normalizeLabels(records);
 }

@@ -18,8 +18,14 @@ export type CliOptions = {
 
 export type Settings = {
 	configPath?: string;
+	extend: {
+		categories: Category[];
+		labels: Label[];
+	};
 	keep: boolean;
-	migrate?: Migrate;
+	migrate?: {
+		labels: Record<string, string>;
+	};
 	repo: RepoReference;
 	resources: {
 		categories: boolean;
@@ -74,10 +80,6 @@ export type Label = {
 	name: string;
 	color: string;
 	description?: string;
-};
-
-export type Migrate = {
-	labels: Record<string, string>;
 };
 
 export type NewRepository = {
@@ -164,6 +166,7 @@ export type Rule =
 	| RequiredLinearHistoryRule
 	| RequiredSignaturesRule
 	| UpdateRule;
+
 export type PullRequestRule = {
 	type: 'pull_request';
 	parameters?: {

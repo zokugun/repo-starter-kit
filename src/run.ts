@@ -50,7 +50,7 @@ export async function run(options: CliOptions): Promise<void> {
 	let order: OrderItem[] = ['discussion', 'issue'];
 	const expectedFeatures: ExpectedFeatures = {};
 
-	const { configPath, keep, migrate, repo, resources } = settings.value;
+	const { configPath, extend, keep, migrate, repo, resources } = settings.value;
 
 	if(configPath) {
 		const config = await loadConfig(configPath);
@@ -199,7 +199,7 @@ export async function run(options: CliOptions): Promise<void> {
 		if(labels) {
 			logger.showProgress('Syncing labels');
 
-			const result = await syncLabels(context, labels, migrate?.labels, keep);
+			const result = await syncLabels(context, [...labels, ...extend.labels], migrate?.labels, keep);
 			if(result) {
 				return logger.fatal(result.error);
 			}
@@ -208,7 +208,7 @@ export async function run(options: CliOptions): Promise<void> {
 		if(categories) {
 			logger.showProgress('Syncing categories');
 
-			const result = await syncCategories(context, categories, keep);
+			const result = await syncCategories(context, [...categories, ...extend.categories], keep);
 			if(result) {
 				return logger.fatal(result.error);
 			}
