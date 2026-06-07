@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.7.0 | 2026-06-07
+- project can add custom categories and labels
+
 ## v0.6.2 | 2026-05-27
 - update project only when needed
 - rename resources, now it uses the plural form
